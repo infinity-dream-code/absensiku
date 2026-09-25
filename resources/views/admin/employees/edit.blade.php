@@ -161,20 +161,6 @@
         </div>
         
         <div class="form-group">
-            <label for="nip" class="form-label">
-                NIP
-            </label>
-            <input type="text" 
-                   id="nip" 
-                   name="nip" 
-                   value="{{ old('nip', $employee->nip) }}"
-                   class="form-input @error('nip') error @enderror">
-            @error('nip')
-                <p class="error-message">{{ $message }}</p>
-            @enderror
-        </div>
-        
-        <div class="form-group">
             <label for="name" class="form-label">
                 Nama <span class="required">*</span>
             </label>
@@ -188,14 +174,27 @@
                 <p class="error-message">{{ $message }}</p>
             @enderror
         </div>
-        
-        <div class="form-group">
-            <label class="form-label">Jenis (dihitung di dashboard)</label>
-            <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">
-                <input type="hidden" name="jenis" value="0">
-                <input type="checkbox" name="jenis" value="1" {{ old('jenis', $employee->jenis ?? true) ? 'checked' : '' }}>
-                <span>Centang = karyawan dihitung di dashboard (termasuk tidak absen)</span>
+
+        <div class="form-group" style="background:#f5f3ff; border:1px solid #ddd6fe; border-radius:12px; padding:16px;">
+            <label for="id_role" class="form-label">Role KPI (4 pilihan)</label>
+            <select id="id_role" name="id_role" class="form-input @error('id_role') error @enderror">
+                <option value="">-- Pilih Role --</option>
+                @foreach($roles as $role)
+                    <option value="{{ $role->id }}" {{ (string) old('id_role', $employee->id_role) === (string) $role->id ? 'selected' : '' }}>
+                        {{ $role->role }}
+                    </option>
+                @endforeach
+            </select>
+            @error('id_role')
+                <p class="error-message">{{ $message }}</p>
+            @enderror
+            <p class="form-help">Pilih salah satu: Developer, Finance, HR & Admin, Support & Implementasi.</p>
+
+            <label class="form-label" style="display:flex; align-items:center; gap:8px; margin-top:14px;">
+                <input type="checkbox" name="is_penilai" value="1" {{ old('is_penilai', $employee->is_penilai) ? 'checked' : '' }}>
+                Jadikan Penilai KPI (ketua divisi)
             </label>
+            <p class="form-help">Centang agar user bisa login di halaman Penilai KPI. Wajib pilih Role KPI dulu.</p>
         </div>
         
         <div class="form-group">

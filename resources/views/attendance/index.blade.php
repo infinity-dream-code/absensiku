@@ -41,6 +41,446 @@
         width: 100%;
         max-width: 42rem;
     }
+    .summary-card {
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+    .summary-header {
+        padding: 1.25rem 1.25rem 1rem;
+        background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 55%, #ffffff 100%);
+        border-bottom: 1px solid #eef2ff;
+        display: flex;
+        flex-direction: column;
+        gap: 0.875rem;
+    }
+    .summary-card.collapsed .summary-header {
+        border-bottom: 0;
+        padding-bottom: 1.25rem;
+    }
+    .summary-card.collapsed .summary-collapsible {
+        display: none;
+    }
+    .summary-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+    .summary-title-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 0;
+    }
+    .summary-toggle {
+        border: 0;
+        background: #ede9fe;
+        color: #4f46e5;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .summary-card.collapsed .summary-toggle i {
+        transform: rotate(-90deg);
+    }
+    .summary-filters {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    .summary-filters select {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border: 1px solid #c7d2fe;
+        border-radius: 0.65rem;
+        font-size: 0.875rem;
+        background: #fff;
+        color: #111827;
+    }
+    .summary-filters select:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    }
+    .summary-period {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        margin: 0.2rem 0 0;
+    }
+    .summary-body {
+        padding: 1rem 1.25rem 1.25rem;
+    }
+    .summary-leave-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.9rem 1rem;
+        border-radius: 0.85rem;
+        background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+        border: 1px solid #bbf7d0;
+        margin-bottom: 0.9rem;
+    }
+    .summary-leave-box .leave-meta {
+        flex: 1;
+        min-width: 0;
+    }
+    .summary-leave-box .leave-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #047857;
+        margin: 0 0 0.2rem;
+    }
+    .summary-leave-box .leave-sub {
+        font-size: 0.72rem;
+        color: #059669;
+        margin: 0;
+    }
+    .summary-leave-box .leave-value {
+        text-align: right;
+        flex-shrink: 0;
+    }
+    .summary-leave-box .leave-value strong {
+        display: block;
+        font-size: 1.65rem;
+        line-height: 1;
+        color: #065f46;
+        font-weight: 700;
+    }
+    .summary-leave-box .leave-value span {
+        font-size: 0.7rem;
+        color: #059669;
+    }
+    .summary-leave-bar {
+        height: 6px;
+        border-radius: 999px;
+        background: #d1fae5;
+        overflow: hidden;
+        margin-top: 0.55rem;
+    }
+    .summary-leave-bar > span {
+        display: block;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #10b981, #34d399);
+    }
+    .summary-section-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #9ca3af;
+        margin: 0 0 0.55rem;
+    }
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.65rem;
+    }
+    .summary-stat {
+        border: 1px solid #e5e7eb;
+        border-radius: 0.85rem;
+        padding: 0.85rem 0.9rem;
+        background: #fff;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .summary-stat:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    }
+    .summary-stat .stat-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.6rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+    .summary-stat .stat-text {
+        min-width: 0;
+    }
+    .summary-stat .label {
+        font-size: 0.72rem;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 0.15rem;
+    }
+    .summary-stat .value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #111827;
+        line-height: 1.15;
+    }
+    .summary-stat.green .stat-icon { background: #d1fae5; color: #059669; }
+    .summary-stat.red .stat-icon { background: #fee2e2; color: #dc2626; }
+    .summary-stat.amber .stat-icon { background: #fef3c7; color: #d97706; }
+    .summary-stat.blue .stat-icon { background: #dbeafe; color: #2563eb; }
+    .summary-stat.violet .stat-icon { background: #ede9fe; color: #7c3aed; }
+    .summary-stat.slate .stat-icon { background: #e2e8f0; color: #475569; }
+    .summary-stat.green { border-color: #a7f3d0; background: #f0fdf4; }
+    .summary-stat.red { border-color: #fecaca; background: #fef2f2; }
+    .summary-stat.amber { border-color: #fde68a; background: #fffbeb; }
+    .summary-stat.blue { border-color: #bfdbfe; background: #eff6ff; }
+    .summary-stat.violet { border-color: #ddd6fe; background: #f5f3ff; }
+    .summary-stat.slate { border-color: #e2e8f0; background: #f8fafc; }
+    .summary-detail {
+        margin-top: 0.75rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.85rem;
+        overflow: hidden;
+        background: #fff;
+    }
+    .summary-detail + .summary-detail {
+        margin-top: 0.55rem;
+    }
+    .summary-detail-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.8rem 0.95rem;
+        border: none;
+        background: #f8fafc;
+        cursor: pointer;
+        text-align: left;
+        color: #111827;
+        font: inherit;
+    }
+    .summary-detail-toggle:hover {
+        background: #f1f5f9;
+    }
+    .summary-detail-toggle .toggle-left {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-width: 0;
+    }
+    .summary-detail-toggle .toggle-icon {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+    .summary-detail-toggle .toggle-icon.late {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+    .summary-detail-toggle .toggle-icon.leave {
+        background: #dbeafe;
+        color: #2563eb;
+    }
+    .summary-detail-toggle .toggle-title {
+        font-size: 0.84rem;
+        font-weight: 600;
+        margin: 0;
+    }
+    .summary-detail-toggle .toggle-sub {
+        font-size: 0.7rem;
+        color: #6b7280;
+        margin: 0.1rem 0 0;
+    }
+    .summary-detail-toggle .toggle-chevron {
+        color: #9ca3af;
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+    }
+    .summary-detail.open .toggle-chevron {
+        transform: rotate(180deg);
+    }
+    .summary-detail-panel {
+        display: none;
+        border-top: 1px solid #e5e7eb;
+        padding: 0.65rem;
+        background: #fff;
+    }
+    .summary-detail.open .summary-detail-panel {
+        display: block;
+    }
+    .summary-detail-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.65rem 0.7rem;
+        border-radius: 0.65rem;
+        background: #f9fafb;
+    }
+    .summary-detail-item + .summary-detail-item {
+        margin-top: 0.45rem;
+    }
+    .summary-detail-item .item-main {
+        min-width: 0;
+    }
+    .summary-detail-item .item-date {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0;
+    }
+    .summary-detail-item .item-meta {
+        font-size: 0.72rem;
+        color: #6b7280;
+        margin: 0.15rem 0 0;
+    }
+    .summary-detail-item .item-badge {
+        flex-shrink: 0;
+        font-size: 0.68rem;
+        font-weight: 600;
+        padding: 0.2rem 0.45rem;
+        border-radius: 999px;
+        line-height: 1.2;
+    }
+    .summary-detail-item .item-badge.late {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+    .summary-detail-item .item-badge.sakit {
+        background: #fef3c7;
+        color: #b45309;
+    }
+    .summary-detail-item .item-badge.izin {
+        background: #dbeafe;
+        color: #1d4ed8;
+    }
+    .summary-detail-item .item-badge.cuti {
+        background: #ede9fe;
+        color: #6d28d9;
+    }
+    .summary-detail-empty {
+        font-size: 0.78rem;
+        color: #9ca3af;
+        text-align: center;
+        padding: 0.75rem 0.5rem;
+        margin: 0;
+    }
+    .kpi-view-card {
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        margin-top: 1rem;
+    }
+    .kpi-view-header {
+        padding: 1.25rem 1.25rem 1rem;
+        background: linear-gradient(135deg, #f5f3ff 0%, #f8fafc 55%, #ffffff 100%);
+        border-bottom: 1px solid #ede9fe;
+        display: flex;
+        flex-direction: column;
+        gap: 0.875rem;
+    }
+    .kpi-view-body {
+        padding: 1rem 1.25rem 1.25rem;
+    }
+    .kpi-score-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.9rem 1rem;
+        border-radius: 0.85rem;
+        background: linear-gradient(135deg, #f5f3ff 0%, #eef2ff 100%);
+        border: 1px solid #ddd6fe;
+        margin-bottom: 0.9rem;
+    }
+    .kpi-score-row .kpi-meta {
+        min-width: 0;
+    }
+    .kpi-score-row .kpi-cat {
+        font-size: 0.78rem;
+        color: #6d28d9;
+        margin: 0 0 0.15rem;
+        font-weight: 600;
+    }
+    .kpi-score-row .kpi-penilai {
+        font-size: 0.72rem;
+        color: #6b7280;
+        margin: 0;
+    }
+    .kpi-score-row .kpi-score strong {
+        display: block;
+        font-size: 1.65rem;
+        line-height: 1;
+        color: #5b21b6;
+        text-align: right;
+    }
+    .kpi-score-row .kpi-score span {
+        font-size: 0.7rem;
+        color: #7c3aed;
+    }
+    .kpi-table-mini {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+    }
+    .kpi-table-mini th,
+    .kpi-table-mini td {
+        border: 1px solid #e5e7eb;
+        padding: 0.55rem 0.6rem;
+        text-align: left;
+    }
+    .kpi-table-mini th {
+        background: #f5f3ff;
+        color: #312e81;
+        font-size: 0.72rem;
+    }
+    .kpi-table-mini td.num {
+        text-align: right;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .kpi-feedback {
+        margin-top: 0.9rem;
+        padding: 0.85rem 1rem;
+        border-radius: 0.85rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+    .kpi-feedback .label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #9ca3af;
+        margin: 0 0 0.4rem;
+    }
+    .kpi-feedback p {
+        margin: 0;
+        font-size: 0.84rem;
+        color: #374151;
+        white-space: pre-wrap;
+    }
+    .kpi-empty {
+        font-size: 0.84rem;
+        color: #6b7280;
+        text-align: center;
+        padding: 1.25rem 0.5rem;
+        margin: 0;
+    }
+    @media (min-width: 480px) {
+        .summary-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
     .card-main {
         background: white;
         border-radius: 1rem;
@@ -672,6 +1112,261 @@
             @endif
         </div>
         @endif
+
+        <div class="summary-card" id="summaryCard">
+            <div class="summary-header">
+                <div class="summary-title-row">
+                    <div class="summary-title-left">
+                        <div class="icon-box">
+                            <i class="fas fa-chart-pie" style="color: #6366f1;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1.125rem; font-weight: 600; color: #111827; margin: 0;">Ringkasan Absensi</h3>
+                            <p class="summary-period">Periode: {{ $summary['period_label'] }}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="summary-toggle" id="summaryToggle" aria-label="Tampilkan/sembunyikan ringkasan">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="summary-collapsible">
+                <div class="summary-header" style="padding-top:0; background:transparent; border-bottom:0;">
+                <form method="GET" action="{{ route('attendance.index') }}" class="summary-filters" id="summaryFilterForm">
+                    <input type="hidden" name="kpi_year" value="{{ $kpiView['year'] }}">
+                    <input type="hidden" name="kpi_month" value="{{ $kpiView['month'] }}">
+                    <div>
+                        <label for="summary_year" class="form-label">Tahun</label>
+                        <select name="year" id="summary_year" onchange="this.form.submit()">
+                            @foreach($summary['years'] as $yearOption)
+                                <option value="{{ $yearOption }}" {{ (int) $summary['year'] === (int) $yearOption ? 'selected' : '' }}>
+                                    {{ $yearOption }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="summary_month" class="form-label">Bulan</label>
+                        <select name="month" id="summary_month" onchange="this.form.submit()">
+                            <option value="all" {{ $summary['all_months'] ? 'selected' : '' }}>Semua bulan</option>
+                            @foreach($summary['months'] as $monthNum => $monthName)
+                                <option value="{{ $monthNum }}" {{ !$summary['all_months'] && (int) $summary['month'] === (int) $monthNum ? 'selected' : '' }}>
+                                    {{ $monthName }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+                </div>
+            <div class="summary-body">
+                @php
+                    $cutiPercent = $summary['cuti_max'] > 0
+                        ? min(100, round(($summary['cuti_used_year'] / $summary['cuti_max']) * 100))
+                        : 0;
+                @endphp
+                <div class="summary-leave-box">
+                    <div class="leave-meta">
+                        <p class="leave-title"><i class="fas fa-umbrella-beach" style="margin-right:6px;"></i>Sisa Cuti {{ $summary['year'] }}</p>
+                        <p class="leave-sub">Terpakai {{ $summary['cuti_used_year'] }} dari {{ $summary['cuti_max'] }} hari</p>
+                        <div class="summary-leave-bar"><span style="width: {{ $cutiPercent }}%;"></span></div>
+                    </div>
+                    <div class="leave-value">
+                        <strong>{{ $summary['sisa_cuti'] }}</strong>
+                        <span>hari tersisa</span>
+                    </div>
+                </div>
+
+                <p class="summary-section-label">Kehadiran</p>
+                <div class="summary-grid" style="margin-bottom: 0.9rem;">
+                    <div class="summary-stat green">
+                        <div class="stat-icon"><i class="fas fa-check"></i></div>
+                        <div class="stat-text">
+                            <div class="label">Tepat Waktu</div>
+                            <div class="value">{{ $summary['tepat_waktu'] }}</div>
+                        </div>
+                    </div>
+                    <div class="summary-stat red">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-text">
+                            <div class="label">Terlambat</div>
+                            <div class="value">{{ $summary['terlambat'] }}</div>
+                        </div>
+                    </div>
+                    <div class="summary-stat slate">
+                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                        <div class="stat-text">
+                            <div class="label">Total Hadir</div>
+                            <div class="value">{{ $summary['total_hadir'] }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="summary-section-label">Perizinan</p>
+                <div class="summary-grid">
+                    <div class="summary-stat amber">
+                        <div class="stat-icon"><i class="fas fa-notes-medical"></i></div>
+                        <div class="stat-text">
+                            <div class="label">Sakit</div>
+                            <div class="value">{{ $summary['sakit'] }}</div>
+                        </div>
+                    </div>
+                    <div class="summary-stat blue">
+                        <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                        <div class="stat-text">
+                            <div class="label">Izin</div>
+                            <div class="value">{{ $summary['izin'] }}</div>
+                        </div>
+                    </div>
+                    <div class="summary-stat violet">
+                        <div class="stat-icon"><i class="fas fa-plane-departure"></i></div>
+                        <div class="stat-text">
+                            <div class="label">Cuti</div>
+                            <div class="value">{{ $summary['cuti'] }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-detail" data-summary-detail>
+                    <button type="button" class="summary-detail-toggle" data-summary-toggle aria-expanded="false">
+                        <span class="toggle-left">
+                            <span class="toggle-icon late"><i class="fas fa-clock"></i></span>
+                            <span>
+                                <p class="toggle-title">Detail Terlambat</p>
+                                <p class="toggle-sub">{{ min(10, count($summary['latest_late'])) }} data terakhir dari {{ $summary['terlambat'] }}</p>
+                            </span>
+                        </span>
+                        <i class="fas fa-chevron-down toggle-chevron"></i>
+                    </button>
+                    <div class="summary-detail-panel">
+                        @forelse($summary['latest_late'] as $late)
+                            <div class="summary-detail-item">
+                                <div class="item-main">
+                                    <p class="item-date">{{ $late['date'] }}</p>
+                                    <p class="item-meta">Check-in {{ $late['time'] }} · {{ $late['work_type'] }}</p>
+                                </div>
+                                <span class="item-badge late">Terlambat</span>
+                            </div>
+                        @empty
+                            <p class="summary-detail-empty">Belum ada data terlambat.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="summary-detail" data-summary-detail>
+                    <button type="button" class="summary-detail-toggle" data-summary-toggle aria-expanded="false">
+                        <span class="toggle-left">
+                            <span class="toggle-icon leave"><i class="fas fa-calendar-times"></i></span>
+                            <span>
+                                <p class="toggle-title">Detail Perizinan</p>
+                                <p class="toggle-sub">{{ min(10, count($summary['latest_leaves'])) }} data terakhir dari {{ $summary['total_izin'] }}</p>
+                            </span>
+                        </span>
+                        <i class="fas fa-chevron-down toggle-chevron"></i>
+                    </button>
+                    <div class="summary-detail-panel">
+                        @forelse($summary['latest_leaves'] as $leave)
+                            <div class="summary-detail-item">
+                                <div class="item-main">
+                                    <p class="item-date">{{ $leave['date'] }}</p>
+                                    <p class="item-meta">{{ $leave['notes'] ?: 'Tanpa catatan' }}</p>
+                                </div>
+                                <span class="item-badge {{ $leave['type_key'] }}">{{ $leave['type'] }}</span>
+                            </div>
+                        @empty
+                            <p class="summary-detail-empty">Belum ada data perizinan.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="kpi-view-card">
+            <div class="kpi-view-header">
+                <div class="summary-title-row">
+                    <div class="summary-title-left">
+                        <div class="icon-box">
+                            <i class="fas fa-chart-line" style="color: #7c3aed;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1.125rem; font-weight: 600; color: #111827; margin: 0;">Hasil KPI</h3>
+                            <p class="summary-period">Periode: {{ $kpiView['period_label'] }}</p>
+                        </div>
+                    </div>
+                </div>
+                <form method="GET" action="{{ route('attendance.index') }}" class="summary-filters" id="kpiFilterForm">
+                    <input type="hidden" name="year" value="{{ $summary['year'] }}">
+                    <input type="hidden" name="month" value="{{ $summary['all_months'] ? 'all' : $summary['month'] }}">
+                    <div>
+                        <label for="kpi_year" class="form-label">Tahun</label>
+                        <select name="kpi_year" id="kpi_year" onchange="this.form.submit()">
+                            @foreach($kpiView['years'] as $yearOption)
+                                <option value="{{ $yearOption }}" {{ (int) $kpiView['year'] === (int) $yearOption ? 'selected' : '' }}>
+                                    {{ $yearOption }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label for="kpi_month" class="form-label">Bulan</label>
+                        <select name="kpi_month" id="kpi_month" onchange="this.form.submit()">
+                            @foreach($kpiView['months'] as $monthNum => $monthName)
+                                <option value="{{ $monthNum }}" {{ (int) $kpiView['month'] === (int) $monthNum ? 'selected' : '' }}>
+                                    {{ $monthName }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="kpi-view-body">
+                @if($kpiView['exists'])
+                    <div class="kpi-score-row">
+                        <div class="kpi-meta">
+                            <p class="kpi-cat">{{ $kpiView['kategori'] ?: 'Penilaian KPI' }}</p>
+                            <p class="kpi-penilai">
+                                Dinilai oleh {{ $kpiView['penilai'] ?: '-' }}
+                                @if($kpiView['role']) · {{ $kpiView['role'] }} @endif
+                            </p>
+                        </div>
+                        <div class="kpi-score">
+                            <strong>{{ $kpiView['skor_akhir'] }}</strong>
+                            <span>skor akhir</span>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table class="kpi-table-mini">
+                            <thead>
+                                <tr>
+                                    <th>Indikator</th>
+                                    <th style="width:70px;">Bobot</th>
+                                    <th style="width:70px;">Skor</th>
+                                    <th style="width:80px;">Nilai</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($kpiView['details'] as $detail)
+                                    <tr>
+                                        <td>{{ $detail['nama'] }}</td>
+                                        <td class="num">{{ $detail['bobot'] }}%</td>
+                                        <td class="num">{{ $detail['skor'] }}</td>
+                                        <td class="num">{{ $detail['nilai_akhir'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="kpi-feedback">
+                        <p class="label">Umpan balik</p>
+                        <p>{{ $kpiView['rekomendasi'] ?: 'Belum ada umpan balik.' }}</p>
+                    </div>
+                @else
+                    <p class="kpi-empty">Belum ada penilaian KPI untuk {{ $kpiView['period_label'] }}.</p>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1378,5 +2073,29 @@
             }
         });
     });
+
+    document.querySelectorAll('[data-summary-toggle]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var detail = btn.closest('[data-summary-detail]');
+            if (!detail) return;
+            var isOpen = detail.classList.toggle('open');
+            btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    });
+
+    (function () {
+        var card = document.getElementById('summaryCard');
+        var toggle = document.getElementById('summaryToggle');
+        if (!card || !toggle) return;
+
+        if (localStorage.getItem('absensiSummaryCollapsed') === '1') {
+            card.classList.add('collapsed');
+        }
+
+        toggle.addEventListener('click', function () {
+            card.classList.toggle('collapsed');
+            localStorage.setItem('absensiSummaryCollapsed', card.classList.contains('collapsed') ? '1' : '0');
+        });
+    })();
 </script>
 @endsection

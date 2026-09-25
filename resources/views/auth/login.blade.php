@@ -230,7 +230,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('login') }}" style="width: 100%; box-sizing: border-box;">
+        <form method="POST" action="{{ route('login') }}" class="login-form" style="width: 100%; box-sizing: border-box;">
             @csrf
             
             <div class="form-group">
@@ -292,28 +292,5 @@
     </div>
 </div>
 
-<script>
-    // Refresh CSRF token saat halaman login di-load
-    // Ini penting untuk memastikan token fresh setelah logout
-    window.addEventListener('DOMContentLoaded', function() {
-        fetch('/csrf-token', {
-            method: 'GET',
-            credentials: 'same-origin',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        }).then(response => response.json())
-          .then(data => {
-              if (data.token) {
-                  document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.token);
-                  document.querySelectorAll('input[name="_token"]').forEach(input => {
-                      input.value = data.token;
-                  });
-              }
-          }).catch(() => {});
-        
-        // Clear session storage yang mungkin tersisa
-        sessionStorage.clear();
-    });
-</script>
+@include('partials.login-csrf')
 @endsection

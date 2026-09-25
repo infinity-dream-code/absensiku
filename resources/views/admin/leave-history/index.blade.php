@@ -151,6 +151,47 @@
         display: flex;
         justify-content: center;
     }
+
+    .pagination {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .pagination-link {
+        min-width: 36px;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #374151;
+        background: #ffffff;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .pagination-link:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+
+    .pagination-link.active {
+        background: #4f46e5;
+        color: #ffffff;
+        border-color: #4f46e5;
+    }
+
+    .pagination-link.disabled {
+        color: #9ca3af;
+        background: #f9fafb;
+        border-color: #e5e7eb;
+        pointer-events: none;
+    }
     
     .empty-state {
         padding: 48px;
@@ -580,7 +621,38 @@
     
     @if($leaves->hasPages())
     <div class="pagination-wrapper">
-        {{ $leaves->links() }}
+        <div class="pagination">
+            @if($leaves->onFirstPage())
+                <span class="pagination-link disabled">
+                    <i class="fas fa-chevron-left"></i>
+                </span>
+            @else
+                <a class="pagination-link" href="{{ $leaves->previousPageUrl() }}">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            @endif
+
+            @php
+                $start = max(1, $leaves->currentPage() - 2);
+                $end = min($leaves->lastPage(), $leaves->currentPage() + 2);
+            @endphp
+
+            @for($page = $start; $page <= $end; $page++)
+                <a href="{{ $leaves->url($page) }}" class="pagination-link {{ $page === $leaves->currentPage() ? 'active' : '' }}">
+                    {{ $page }}
+                </a>
+            @endfor
+
+            @if($leaves->hasMorePages())
+                <a class="pagination-link" href="{{ $leaves->nextPageUrl() }}">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            @else
+                <span class="pagination-link disabled">
+                    <i class="fas fa-chevron-right"></i>
+                </span>
+            @endif
+        </div>
     </div>
     @endif
 </div>

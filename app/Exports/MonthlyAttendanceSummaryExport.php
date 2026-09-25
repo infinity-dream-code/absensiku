@@ -29,15 +29,18 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
      */
     public function collection()
     {
-        // Get all users
-        $users = User::where('role', 'user')->orderBy('name')->get();
+        // Hanya karyawan wajib absen (jenis = 1)
+        $users = User::where('role', 'user')
+            ->where('jenis', 1)
+            ->orderBy('name')
+            ->get();
 
         // Get settings for check-in end time
         $settings = Setting::getSettings();
-        $checkInEndTime = $settings->check_in_end ?: '09:00:00';
+        $checkInEndTime = $settings->check_in_end ?: '10:00:00';
 
         // Get all attendances with filters (optimize: don't load user relation)
-        $query = Attendance::whereNotNull('check_in');
+        $query = Attendance::with('logs')->whereNotNull('check_in');
 
         if ($this->year !== null) {
             $query->whereYear('attendance_date', $this->year);
@@ -67,7 +70,7 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
         if ($this->month !== null) {
             $holidayQuery->whereMonth('date', $this->month);
         }
-        $holidays = $holidayQuery->pluck('date')->map(function ($date) {
+        $holidays = $holidayQuery->pluck('date')->map(function($date) {
             return Carbon::parse($date)->format('Y-m-d');
         })->toArray();
 
@@ -76,21 +79,21 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
         $endDate = null;
         $today = Carbon::today('Asia/Jakarta');
         $yesterday = $today->copy()->subDay(); // Alpha hanya dihitung sampai kemarin
-
+        
         // Program launch date (1 Januari 2026)
         $launchDate = Carbon::create(2026, 1, 1);
-
+        
         if ($this->year !== null && $this->month !== null) {
             $requestedStartDate = Carbon::create($this->year, $this->month, 1);
             $requestedEndDate = $requestedStartDate->copy()->endOfMonth();
-
+            
             // Start date should be the later of launch date or requested start date
             $startDate = $requestedStartDate->lt($launchDate) ? $launchDate->copy() : $requestedStartDate;
-
+            
             // End date should be the earlier of yesterday or end of month
             // Alpha hanya dihitung sampai kemarin, karena hari ini masih bisa absen
             $endDate = $yesterday->lt($requestedEndDate) ? $yesterday->copy() : $requestedEndDate;
-
+            
             // If end date is before start date, no calculation needed
             if ($endDate->lt($startDate)) {
                 $endDate = null;
@@ -98,14 +101,14 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
         } elseif ($this->year !== null) {
             $requestedStartDate = Carbon::create($this->year, 1, 1);
             $requestedEndDate = $requestedStartDate->copy()->endOfYear();
-
+            
             // Start date should be the later of launch date or requested start date
             $startDate = $requestedStartDate->lt($launchDate) ? $launchDate->copy() : $requestedStartDate;
-
+            
             // End date should be the earlier of yesterday or end of year
             // Alpha hanya dihitung sampai kemarin, karena hari ini masih bisa absen
             $endDate = $yesterday->lt($requestedEndDate) ? $yesterday->copy() : $requestedEndDate;
-
+            
             // If end date is before start date, no calculation needed
             if ($endDate->lt($startDate)) {
                 $endDate = null;
@@ -153,7 +156,7 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
             while ($currentDate->lte($endDate)) {
                 $dateStr = $currentDate->format('Y-m-d');
                 $dayOfWeek = $currentDate->dayOfWeek; // 0 = Sunday, 6 = Saturday
-
+                
                 // Skip weekend (Saturday = 6, Sunday = 0)
                 if ($dayOfWeek != 6 && $dayOfWeek != 0) {
                     // Skip holidays
@@ -186,21 +189,19 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
 
             // Count attendances
             foreach ($userAttendances as $dateStr => $attendance) {
-                // Count by work type
-                if ($attendance->work_type === 'WFO') {
+                // Count by jenis absensi terakhir (log paling akhir)
+                $workType = $attendance->latestWorkType();
+                if ($workType === 'WFO') {
                     $wfo++;
-                } elseif ($attendance->work_type === 'WFH') {
+                } elseif ($workType === 'WFH') {
                     $wfh++;
-                } elseif ($attendance->work_type === 'WFA') {
+                } elseif ($workType === 'WFA') {
                     $wfa++;
                 }
 
-                // Count by status (tepat waktu or terlambat)
-                if ($attendance->check_in) {
-                    $checkInEnd = Carbon::parse($dateStr . ' ' . $checkInEndTime, 'Asia/Jakarta');
-                    $checkInTime = Carbon::parse($attendance->check_in, 'Asia/Jakarta');
-
-                    if ($checkInTime->gt($checkInEnd)) {
+                // Count status: terlambat 0.25 (batas setting) atau telat WFO 50%
+                if ($attendance->earliestCheckInTime() || $attendance->latestWorkType() === 'WFO') {
+                    if ($attendance->isLateStatus($checkInEndTime)) {
                         $terlambat++;
                     } else {
                         $tepatWaktu++;
@@ -241,7 +242,7 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
     public function headings(): array
     {
         return [
-            'NIP',
+            'NIK',
             'Nama',
             'Tepat Waktu',
             'Terlambat',
@@ -262,7 +263,7 @@ class MonthlyAttendanceSummaryExport implements FromCollection, WithHeadings, Wi
     public function map($row): array
     {
         return [
-            $row['user']->nip ?? '-',
+            $row['user']->nik,
             $row['user']->name,
             $row['tepat_waktu'],
             $row['terlambat'],

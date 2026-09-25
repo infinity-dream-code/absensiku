@@ -64,7 +64,7 @@ class Handler extends ExceptionHandler
             ], 401);
         }
 
-        // For web routes, redirect to login
-        return redirect()->guest(route('login'));
+        // Relative path agar tidak pernah redirect ke http://localhost/...
+        return redirect()->guest('/login');
     }
 }

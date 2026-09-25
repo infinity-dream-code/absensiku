@@ -257,7 +257,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('admin.login') }}">
+            <form method="POST" action="{{ route('admin.login') }}" class="login-form">
                 @csrf
                 
                 <div class="form-group">
@@ -300,10 +300,13 @@
             </form>
 
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
-                <a href="{{ route('login') }}" class="btn-user-link">
-                    <i class="fas fa-user"></i>
-                    <span>Login User</span>
-                </a>
+                <p style="text-align:center; color:#9ca3af; font-size:13px; margin-bottom:12px;">atau</p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <a href="{{ route('login') }}" class="btn-user-link">
+                        <i class="fas fa-user"></i>
+                        <span>Login User</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -322,33 +325,17 @@
             });
         @endif
 
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Unregister service worker lama yang mungkin cache HTML dengan token lama
-                navigator.serviceWorker.getRegistrations().then((registrations) => {
-                    for (let registration of registrations) {
-                        // Unregister service worker dengan cache name lama
-                        if (registration.active) {
-                            registration.unregister().then(() => {
-                                console.log('Old service worker unregistered');
-                            });
-                        }
-                    }
-                    
-                    // Register service worker baru
-                    navigator.serviceWorker.register('{{ asset("sw.js") }}?v=2')
-                        .then((registration) => {
-                            console.log('Service Worker registered successfully:', registration.scope);
-                            // Force update service worker
-                            registration.update();
-                        })
-                        .catch((error) => {
-                            console.log('Service Worker registration failed:', error);
-                        });
-                });
+        @if(session('error'))
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: '{{ session('error') }}',
+                timer: 4000,
+                showConfirmButton: false
             });
-        }
+        @endif
     </script>
+
+    @include('partials.login-csrf')
 </body>
 </html>

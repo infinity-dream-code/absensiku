@@ -12,6 +12,8 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        // Relative path — hindari generate URL absolut ke localhost
+        // bila APP_URL / config cache salah di server.
+        return $request->expectsJson() ? null : '/login';
     }
 }

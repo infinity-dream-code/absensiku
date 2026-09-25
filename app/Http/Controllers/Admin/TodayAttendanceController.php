@@ -29,10 +29,18 @@ class TodayAttendanceController extends Controller
             ? Carbon::parse($request->date, 'Asia/Jakarta')->startOfDay()
             : Carbon::today('Asia/Jakarta');
 
-        $totalEmployees = User::where('role', 'user')->count();
+        // Hanya karyawan wajib absen (jenis = 1)
+        $employees = User::where('role', 'user')
+            ->where('jenis', 1)
+            ->orderBy('name')
+            ->get();
+        $totalEmployees = $employees->count();
+        $employeeIds = $employees->pluck('id');
 
-        // User ID yang sudah absen (punya attendance) di tanggal tersebut - pakai earliest check_in per user
-        $attendanceRecords = Attendance::whereDate('attendance_date', $selectedDate)
+        // User ID yang sudah absen - earliest check_in; jenis absen = log terakhir
+        $attendanceRecords = Attendance::with('logs')
+            ->whereIn('user_id', $employeeIds)
+            ->whereDate('attendance_date', $selectedDate)
             ->whereNotNull('check_in')
             ->get();
         $presentUserIds = $attendanceRecords
@@ -42,20 +50,17 @@ class TodayAttendanceController extends Controller
             ->flip()
             ->all();
 
-        // User ID yang izin/leave di tanggal tersebut
-        $leaveUserIds = Leave::whereDate('leave_date', $selectedDate)
+        $leaveUserIds = Leave::whereIn('user_id', $employeeIds)
+            ->whereDate('leave_date', $selectedDate)
             ->pluck('user_id')
             ->unique()
             ->flip()
             ->all();
 
-        // Hitung: Sudah Absen, Izin, Tidak Absen (prioritas: jika izin = On Leave; jika ada absen = Present; else Absent)
         $countPresent = 0;
         $countOnLeave = 0;
         $countAbsent = 0;
         $employeeCards = [];
-
-        $employees = User::where('role', 'user')->orderBy('name')->get();
 
         foreach ($employees as $user) {
             $userId = $user->id;
@@ -75,15 +80,14 @@ class TodayAttendanceController extends Controller
             } elseif ($hasAttendance) {
                 $countPresent++;
                 $att = $attendanceRecords->where('user_id', $userId)->sortBy('check_in')->first();
-                $checkInTime = $att && $att->check_in
-                    ? Carbon::parse($att->check_in, 'Asia/Jakarta')->format('H:i')
-                    : '-';
+                $earliest = $att ? $att->earliestCheckInTime() : null;
+                $checkInTime = $earliest ? $earliest->format('H:i') : '-';
                 $employeeCards[] = [
                     'user' => $user,
                     'status' => 'present',
                     'label' => 'Sudah Absen',
                     'detail' => 'Check In: ' . $checkInTime,
-                    'work_type' => $att ? $att->work_type : '-',
+                    'work_type' => $att ? $att->latestWorkType() : '-',
                 ];
             } else {
                 $countAbsent++;

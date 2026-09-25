@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
+use App\Models\KpiAssessment;
+use App\Models\Leave;
+use App\Services\KpiCalculator;
 use Illuminate\Support\Facades\Storage;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Carbon\Carbon;
@@ -24,7 +27,7 @@ class AttendanceController extends Controller
         });
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $today = Carbon::today('Asia/Jakarta');
         $attendance = Attendance::with('logs')->where('user_id', Auth::id())
@@ -32,8 +35,224 @@ class AttendanceController extends Controller
             ->first();
 
         $settings = \App\Models\Setting::getSettings();
+        $summary = $this->buildAttendanceSummary($request, Auth::id(), $settings);
+        $kpiView = $this->buildKpiView($request, Auth::id());
 
-        return view('attendance.index', compact('attendance', 'settings'));
+        return view('attendance.index', compact('attendance', 'settings', 'summary', 'kpiView'));
+    }
+
+    /**
+     * KPI karyawan yang sedang login, filter bulan/tahun.
+     */
+    private function buildKpiView(Request $request, int $userId): array
+    {
+        $now = Carbon::now('Asia/Jakarta');
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        $availableYears = KpiAssessment::where('id_user', $userId)
+            ->select('tahun')
+            ->distinct()
+            ->pluck('tahun')
+            ->push($now->year)
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+
+        $selectedYear = (int) $request->input('kpi_year', $now->year);
+        if (!in_array($selectedYear, $availableYears, true)) {
+            $availableYears[] = $selectedYear;
+            rsort($availableYears);
+        }
+
+        $selectedMonth = (int) $request->input('kpi_month', $now->month);
+        $selectedMonth = max(1, min(12, $selectedMonth));
+
+        $assessment = KpiAssessment::with(['details', 'penilai', 'role'])
+            ->where('id_user', $userId)
+            ->where('tahun', $selectedYear)
+            ->where('bulan', $selectedMonth)
+            ->first();
+
+        $details = [];
+        if ($assessment) {
+            foreach ($assessment->details as $detail) {
+                $details[] = [
+                    'nama' => $detail->nama_indikator,
+                    'bobot' => (int) $detail->bobot,
+                    'skor' => KpiCalculator::formatSkor($detail->skor),
+                    'nilai_akhir' => rtrim(rtrim(number_format((float) $detail->nilai_akhir, 1, ',', ''), '0'), ','),
+                ];
+            }
+        }
+
+        return [
+            'year' => $selectedYear,
+            'month' => $selectedMonth,
+            'years' => $availableYears,
+            'months' => $monthNames,
+            'period_label' => ($monthNames[$selectedMonth] ?? $selectedMonth) . ' ' . $selectedYear,
+            'exists' => (bool) $assessment,
+            'skor_akhir' => $assessment ? rtrim(rtrim(number_format((float) $assessment->skor_akhir, 1, ',', ''), '0'), ',') : null,
+            'kategori' => $assessment->kategori ?? null,
+            'rekomendasi' => trim((string) ($assessment->rekomendasi ?? '')) ?: null,
+            'penilai' => $assessment?->penilai?->name,
+            'role' => $assessment?->role?->role,
+            'details' => $details,
+        ];
+    }
+
+    /**
+     * Ringkasan absensi karyawan: filter tahun + bulan (atau semua bulan).
+     */
+    private function buildAttendanceSummary(Request $request, int $userId, $settings): array
+    {
+        $now = Carbon::now('Asia/Jakarta');
+        $selectedYear = (int) $request->input('year', $now->year);
+        $monthInput = $request->input('month', $now->month);
+        $allMonths = $monthInput === 'all' || $monthInput === '' || $monthInput === null;
+        $selectedMonth = $allMonths ? null : max(1, min(12, (int) $monthInput));
+
+        $availableYears = Attendance::where('user_id', $userId)
+            ->selectRaw('YEAR(attendance_date) as year')
+            ->distinct()
+            ->pluck('year')
+            ->merge(
+                Leave::where('user_id', $userId)
+                    ->selectRaw('YEAR(leave_date) as year')
+                    ->distinct()
+                    ->pluck('year')
+            )
+            ->push($now->year)
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+
+        if (!in_array($selectedYear, $availableYears, true)) {
+            $availableYears[] = $selectedYear;
+            rsort($availableYears);
+        }
+
+        $leaveQuery = Leave::where('user_id', $userId)
+            ->whereYear('leave_date', $selectedYear);
+        if ($selectedMonth) {
+            $leaveQuery->whereMonth('leave_date', $selectedMonth);
+        }
+
+        $leaveRows = $leaveQuery
+            ->orderByDesc('leave_date')
+            ->orderByDesc('id')
+            ->get(['leave_date', 'leave_type', 'notes']);
+
+        $leaveCounts = [
+            'sakit' => 0,
+            'izin' => 0,
+            'cuti' => 0,
+        ];
+        $leaveTypeLabels = [
+            'sakit' => 'Sakit',
+            'izin' => 'Izin',
+            'cuti' => 'Cuti',
+        ];
+        $latestLeaves = [];
+        foreach ($leaveRows as $leave) {
+            $type = strtolower((string) $leave->leave_type);
+            if (isset($leaveCounts[$type])) {
+                $leaveCounts[$type]++;
+            }
+
+            if (count($latestLeaves) < 10) {
+                $leaveDate = $leave->leave_date instanceof Carbon
+                    ? $leave->leave_date->copy()->locale('id')
+                    : Carbon::parse($leave->leave_date, 'Asia/Jakarta')->locale('id');
+
+                $latestLeaves[] = [
+                    'date' => $leaveDate->isoFormat('D MMM YYYY'),
+                    'type' => $leaveTypeLabels[$type] ?? ucfirst($type),
+                    'type_key' => $type,
+                    'notes' => trim((string) ($leave->notes ?? '')) ?: null,
+                ];
+            }
+        }
+
+        $attendanceQuery = Attendance::with('logs')
+            ->where('user_id', $userId)
+            ->whereYear('attendance_date', $selectedYear)
+            ->whereNotNull('check_in');
+        if ($selectedMonth) {
+            $attendanceQuery->whereMonth('attendance_date', $selectedMonth);
+        }
+
+        $checkInEndTime = $settings->check_in_end ?: '10:00:00';
+        $tepatWaktu = 0;
+        $terlambat = 0;
+        $lateRows = [];
+
+        foreach ($attendanceQuery->orderByDesc('attendance_date')->orderByDesc('id')->get() as $row) {
+            if ($row->isLateStatus($checkInEndTime)) {
+                $terlambat++;
+
+                if (count($lateRows) < 10) {
+                    $date = $row->attendance_date instanceof Carbon
+                        ? $row->attendance_date->copy()->locale('id')
+                        : Carbon::parse($row->attendance_date, 'Asia/Jakarta')->locale('id');
+                    $checkIn = $row->earliestCheckInTime();
+
+                    $lateRows[] = [
+                        'date' => $date->isoFormat('D MMM YYYY'),
+                        'time' => $checkIn ? $checkIn->format('H:i') : '-',
+                        'work_type' => $row->latestWorkType(),
+                    ];
+                }
+            } else {
+                $tepatWaktu++;
+            }
+        }
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
+
+        $periodLabel = $selectedMonth
+            ? ($monthNames[$selectedMonth] . ' ' . $selectedYear)
+            : ('Tahun ' . $selectedYear);
+
+        $cutiMax = 12;
+        $cutiUsedYear = (int) Leave::where('user_id', $userId)
+            ->whereYear('leave_date', $selectedYear)
+            ->where('leave_type', 'cuti')
+            ->count();
+        $sisaCuti = max(0, $cutiMax - $cutiUsedYear);
+
+        return [
+            'year' => $selectedYear,
+            'month' => $selectedMonth,
+            'all_months' => $selectedMonth === null,
+            'years' => $availableYears,
+            'months' => $monthNames,
+            'period_label' => $periodLabel,
+            'sakit' => $leaveCounts['sakit'],
+            'izin' => $leaveCounts['izin'],
+            'cuti' => $leaveCounts['cuti'],
+            'cuti_max' => $cutiMax,
+            'cuti_used_year' => $cutiUsedYear,
+            'sisa_cuti' => $sisaCuti,
+            'tepat_waktu' => $tepatWaktu,
+            'terlambat' => $terlambat,
+            'total_hadir' => $tepatWaktu + $terlambat,
+            'total_izin' => array_sum($leaveCounts),
+            'latest_leaves' => $latestLeaves,
+            'latest_late' => $lateRows,
+        ];
     }
 
     public function checkIn(Request $request)
@@ -98,7 +317,18 @@ class AttendanceController extends Controller
             'longitude' => $request->longitude,
             'location_valid' => true,
             'location_name' => $locationName,
+            'is_telat_wfo' => 0,
         ];
+
+        // Telat WFO: jam absen WFO > 10:30:00 (meski sudah WFA lebih pagi)
+        $earliestForTelat = $existing && $existing->check_in
+            ? Carbon::parse($existing->check_in, 'Asia/Jakarta')
+            : $now;
+        $data['is_telat_wfo'] = Attendance::resolveIsTelatWfo(
+            $request->work_type === 'WFO',
+            $earliestForTelat,
+            $now
+        ) ? 1 : 0;
 
         // Validate location for WFO (jika lokasi tersedia)
         if ($request->work_type === 'WFO') {
@@ -173,10 +403,31 @@ class AttendanceController extends Controller
                 $existing->update($data);
                 $attendance = $existing;
             } else {
-                // Absen kedua dan seterusnya: JANGAN update record utama, hanya tambah ke log
-                // Check-in yang dipakai tetap yang paling awal (jam 9), jam 12 hanya ke log
-                $attendance = $existing;
-                // Tidak update $existing sama sekali
+                // Absen kedua+: check_in awal tetap; work_type ikut terakhir
+                // WFA jam 8 + WFO > 10:30 → tetap is_telat_wfo = 1
+                $earliest = Carbon::parse($existing->check_in, 'Asia/Jakarta');
+                $updateExtra = [
+                    'work_type' => $request->work_type,
+                    'is_telat_wfo' => Attendance::resolveIsTelatWfo(
+                        $request->work_type === 'WFO',
+                        $earliest,
+                        $now
+                    ) ? 1 : 0,
+                ];
+                // Catatan ikut absen terakhir (boleh kosong)
+                $updateExtra['notes'] = $request->input('notes');
+                if ($request->filled('latitude')) {
+                    $updateExtra['latitude'] = $request->latitude;
+                    $updateExtra['longitude'] = $request->longitude;
+                    if (isset($data['location_name'])) {
+                        $updateExtra['location_name'] = $data['location_name'];
+                    }
+                    if (array_key_exists('location_valid', $data)) {
+                        $updateExtra['location_valid'] = $data['location_valid'];
+                    }
+                }
+                $existing->update($updateExtra);
+                $attendance = $existing->fresh();
             }
         } else {
             // First check-in of the day
@@ -197,6 +448,19 @@ class AttendanceController extends Controller
         ];
         
         AttendanceLog::create($logData);
+
+        // Pastikan kolom work_type record utama = jenis absen terakhir
+        $attendance->forceFill([
+            'work_type' => $request->work_type,
+            'is_telat_wfo' => Attendance::resolveIsTelatWfo(
+                $request->work_type === 'WFO',
+                $existing && $existing->check_in
+                    ? Carbon::parse($existing->check_in, 'Asia/Jakarta')
+                    : $now,
+                $now
+            ) ? 1 : 0,
+        ])->saveQuietly();
+        $attendance->refresh();
 
         $message = 'Check-in berhasil!';
         if ($request->work_type === 'WFO' && isset($data['location_valid']) && !$data['location_valid']) {

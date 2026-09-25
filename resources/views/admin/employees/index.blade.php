@@ -135,11 +135,6 @@
         background: #fde68a;
     }
     
-    .form-jenis-toggle { margin: 0; }
-    .checkbox-jenis { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; margin: 0; }
-    .checkbox-jenis input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-    .check-label { font-size: 13px; color: #374151; }
-    
     .empty-state {
         padding: 48px;
         text-align: center;
@@ -324,8 +319,9 @@
             <thead>
                 <tr>
                     <th>NIK</th>
-                    <th>NIP</th>
                     <th>Nama</th>
+                    <th>Role KPI</th>
+                    <th>Penilai</th>
                     <th>Jenis</th>
                     <th>Aksi</th>
                 </tr>
@@ -334,16 +330,22 @@
                 @forelse($employees as $employee)
                 <tr class="table-row">
                     <td style="font-weight: 600;">{{ $employee->nik }}</td>
-                    <td>{{ $employee->nip ?? '-' }}</td>
                     <td>{{ $employee->name }}</td>
+                    <td>{{ $employee->kpiRole->role ?? '-' }}</td>
                     <td>
-                        <form action="{{ route('admin.employees.toggle-jenis', $employee) }}" method="POST" class="form-jenis-toggle" style="display: inline;">
+                        @if($employee->is_penilai)
+                            <span style="display:inline-block; padding:4px 8px; border-radius:999px; background:#ecfdf5; color:#047857; font-size:12px; font-weight:600;">Ya</span>
+                        @else
+                            <span style="color:#9ca3af;">Tidak</span>
+                        @endif
+                    </td>
+                    <td>
+                        <form action="{{ route('admin.employees.toggle-jenis', $employee) }}" method="POST">
                             @csrf
-                            @method('PATCH')
                             <input type="hidden" name="jenis" value="0">
-                            <label class="checkbox-jenis">
-                                <input type="checkbox" name="jenis" value="1" {{ ($employee->jenis ?? true) ? 'checked' : '' }} onchange="this.form.submit()">
-                                <span class="check-label">Dihitung</span>
+                            <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                                <input type="checkbox" name="jenis" value="1" onchange="this.form.submit()" {{ (int) $employee->jenis === 1 ? 'checked' : '' }}>
+                                <span>Wajib Absen</span>
                             </label>
                         </form>
                     </td>
@@ -373,7 +375,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="empty-state-cell">
+                    <td colspan="6" class="empty-state-cell">
                         Tidak ada data karyawan
                     </td>
                 </tr>

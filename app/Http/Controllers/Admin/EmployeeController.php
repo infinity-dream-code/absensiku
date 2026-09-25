@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Models\Role;
 
 class EmployeeController extends Controller
 {
@@ -22,23 +23,28 @@ class EmployeeController extends Controller
 
     public function index()
     {
-        $employees = User::where('role', 'user')->latest()->get();
+        $employees = User::with('kpiRole')->where('role', 'user')->latest()->get();
         return view('admin.employees.index', compact('employees'));
     }
 
     public function create()
     {
-        return view('admin.employees.create');
+        $roles = Role::orderBy('role')->get();
+        return view('admin.employees.create', compact('roles'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'nik' => 'required|string|unique:users,nik',
-            'nip' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
-            'jenis' => 'nullable|boolean',
+            'id_role' => 'nullable|exists:roles,id',
+            'is_penilai' => 'nullable|boolean',
         ]);
+
+        if ($request->boolean('is_penilai') && !$request->filled('id_role')) {
+            return back()->withErrors(['id_role' => 'Penilai wajib punya Role KPI.'])->withInput();
+        }
 
         // Generate username from first name (lowercase)
         $nameParts = explode(' ', trim($request->name));
@@ -55,13 +61,13 @@ class EmployeeController extends Controller
 
         User::create([
             'nik' => $request->nik,
-            'nip' => $request->nip,
             'name' => $request->name,
             'username' => $username,
             'email' => $request->nik . '@absensi.local', // Dummy email untuk kompatibilitas
             'password' => Hash::make('123456'), // Password default = 123456
             'role' => 'user',
-            'jenis' => $request->has('jenis') ? $request->boolean('jenis') : true,
+            'id_role' => $request->id_role ?: null,
+            'is_penilai' => $request->boolean('is_penilai') ? 1 : 0,
         ]);
 
         return redirect()->route('admin.employees.index')->with('success', "Karyawan berhasil ditambahkan! Username: {$username}, Password default: 123456");
@@ -80,7 +86,8 @@ class EmployeeController extends Controller
         if ($employee->role !== 'user') {
             return redirect()->route('admin.employees.index')->with('error', 'Akses ditolak!');
         }
-        return view('admin.employees.edit', compact('employee'));
+        $roles = Role::orderBy('role')->get();
+        return view('admin.employees.edit', compact('employee', 'roles'));
     }
 
     public function update(Request $request, User $employee)
@@ -91,10 +98,14 @@ class EmployeeController extends Controller
 
         $request->validate([
             'nik' => 'required|string|unique:users,nik,' . $employee->id,
-            'nip' => 'nullable|string|max:255',
             'name' => 'required|string|max:255',
-            'jenis' => 'nullable|boolean',
+            'id_role' => 'nullable|exists:roles,id',
+            'is_penilai' => 'nullable|boolean',
         ]);
+
+        if ($request->boolean('is_penilai') && !$request->filled('id_role')) {
+            return back()->withErrors(['id_role' => 'Penilai wajib punya Role KPI.'])->withInput();
+        }
 
         // Generate username from first name (lowercase)
         $nameParts = explode(' ', trim($request->name));
@@ -111,11 +122,11 @@ class EmployeeController extends Controller
 
         $employee->update([
             'nik' => $request->nik,
-            'nip' => $request->nip,
             'name' => $request->name,
             'username' => $username,
             'email' => $request->nik . '@absensi.local', // Update email dummy
-            'jenis' => $request->has('jenis') ? $request->boolean('jenis') : $employee->jenis,
+            'id_role' => $request->id_role ?: null,
+            'is_penilai' => $request->boolean('is_penilai') ? 1 : 0,
         ]);
 
         return redirect()->route('admin.employees.index')->with('success', 'Data karyawan berhasil diperbarui!');
@@ -145,19 +156,20 @@ class EmployeeController extends Controller
         return redirect()->route('admin.employees.index')->with('success', "Password karyawan {$employee->name} berhasil direset menjadi 123456!");
     }
 
-    /**
-     * Toggle jenis (dihitung di dashboard). Dipanggil dari checkbox di tabel karyawan.
-     */
     public function toggleJenis(Request $request, User $employee)
     {
         if ($employee->role !== 'user') {
             return redirect()->route('admin.employees.index')->with('error', 'Akses ditolak!');
         }
 
-        $employee->update([
-            'jenis' => $request->boolean('jenis'),
+        $request->validate([
+            'jenis' => 'required|in:0,1',
         ]);
 
-        return redirect()->route('admin.employees.index')->with('success', 'Jenis karyawan berhasil diperbarui!');
+        $employee->update([
+            'jenis' => (int) $request->jenis,
+        ]);
+
+        return redirect()->route('admin.employees.index')->with('success', "Jenis kerja {$employee->name} berhasil diupdate!");
     }
 }

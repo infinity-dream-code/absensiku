@@ -200,6 +200,78 @@
         display: flex;
         justify-content: center;
     }
+
+    .pagination-wrapper nav {
+        width: 100%;
+    }
+
+    .pagination-wrapper .pagination {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .pagination-wrapper .pagination li {
+        display: inline-block;
+    }
+
+    .pagination-wrapper .pagination li a,
+    .pagination-wrapper .pagination li span {
+        display: inline-block;
+        padding: 8px 12px;
+        text-decoration: none;
+        color: #374151;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.2s;
+        background: white;
+        min-width: 40px;
+        text-align: center;
+        line-height: 1.25;
+    }
+
+    .pagination-wrapper .pagination li.active span,
+    .pagination-wrapper .pagination li.active a {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+        font-weight: 600;
+    }
+
+    .pagination-wrapper .pagination li a:hover {
+        background: #f3f4f6;
+        border-color: #d1d5db;
+    }
+
+    .pagination-wrapper .pagination li.disabled span,
+    .pagination-wrapper .pagination li.disabled a {
+        color: #9ca3af;
+        cursor: not-allowed;
+        background: #f9fafb;
+        opacity: 0.6;
+    }
+
+    /* Sembunyikan SVG/icon Tailwind yang jadi panah raksasa tanpa Tailwind CSS */
+    .pagination-wrapper svg,
+    .pagination-wrapper i,
+    .pagination-wrapper [class*="fa-"] {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    .pagination-info {
+        text-align: center;
+        font-size: 13px;
+        color: #6b7280;
+        margin-bottom: 12px;
+    }
     
     .empty-state {
         padding: 48px;
@@ -531,13 +603,15 @@
         </div>
         
         <div class="form-group">
-            <label for="search" class="form-label">Cari (Nama/NIP)</label>
-            <input type="text" 
-                   id="search" 
-                   name="search" 
-                   value="{{ request('search') }}"
-                   placeholder="Cari nama atau NIP"
-                   class="form-input">
+            <label for="user_id" class="form-label">Karyawan</label>
+            <select id="user_id" name="user_id" class="form-select">
+                <option value="">Semua karyawan</option>
+                @foreach($employees as $employee)
+                    <option value="{{ $employee->id }}" {{ (string) request('user_id') === (string) $employee->id ? 'selected' : '' }}>
+                        {{ $employee->name }}{{ $employee->nik ? ' (' . $employee->nik . ')' : '' }}
+                    </option>
+                @endforeach
+            </select>
         </div>
         
         <div class="form-group">
@@ -568,7 +642,7 @@
                 <tr>
                     <th style="width: 48px;"></th>
                     <th>Tanggal</th>
-                    <th>NIP</th>
+                    <th>NIK</th>
                     <th>Nama</th>
                     <th>Jenis</th>
                     <th>Check-In</th>
@@ -585,10 +659,6 @@
                     $holidaysByDate = $holidaysByDate ?? [];
                 @endphp
                 @forelse($attendances as $attendance)
-                @php
-                    // Load logs relationship
-                    $attendance->load('logs');
-                @endphp
                 @php
                     $attendanceDate = \Carbon\Carbon::parse($attendance->attendance_date)->format('Y-m-d');
                     $showDateHeader = $currentDate !== $attendanceDate;
@@ -623,7 +693,7 @@
                         </button>
                     </td>
                     <td>{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->isoFormat('D MMM YYYY') }}</td>
-                    <td style="font-weight: 600;">{{ $attendance->user->nip ?? '-' }}</td>
+                    <td style="font-weight: 600;">{{ $attendance->user->nik }}</td>
                     <td>{{ $attendance->user->name }}</td>
                     <td>
                         <span class="badge badge-{{ strtolower($attendance->work_type) }}">
@@ -646,30 +716,11 @@
                     </td>
                     <td>
                         @php
-                            $settings = \App\Models\Setting::getSettings();
-                            $checkInEnd = \Carbon\Carbon::parse($attendance->attendance_date->format('Y-m-d') . ' ' . ($settings->check_in_end ?: '09:00:00'), 'Asia/Jakarta');
-                            $checkInTime = $attendance->check_in ? \Carbon\Carbon::parse($attendance->check_in, 'Asia/Jakarta') : null;
-                            
-                            // Check if there's a log with WFA status between 9-10 AM
-                            $isNotLate = false;
-                            if ($attendance->logs && $attendance->logs->count() > 0) {
-                                $firstLog = $attendance->logs
-                                    ->where('status', 'WFA')
-                                    ->filter(function($log) {
-                                        $logTime = \Carbon\Carbon::parse($log->check_in_time, 'Asia/Jakarta');
-                                        $hour = (int)$logTime->format('H');
-                                        return $hour >= 9 && $hour <= 10;
-                                    })
-                                    ->sortBy('check_in_time')
-                                    ->first();
-                                
-                                // If first check-in was WFA between 9-10 AM, it's not late
-                                $isNotLate = $firstLog !== null;
-                            }
+                            $status = $attendance->punctualityStatus($settings->check_in_end ?: '09:00:00');
                         @endphp
-                        @if($checkInTime && !$isNotLate && $checkInTime->gt($checkInEnd))
+                        @if($status === 'Terlambat')
                             <span style="color: #dc2626; font-weight: 600;">Terlambat</span>
-                        @elseif($checkInTime)
+                        @elseif($status === 'Tepat Waktu')
                             <span style="color: #059669; font-weight: 600;">Tepat Waktu</span>
                         @else
                             <span style="color: #9ca3af;">-</span>
@@ -738,7 +789,28 @@
     
     @if($paginator->hasPages())
     <div class="pagination-wrapper">
-        {{ $paginator->links() }}
+        <div>
+            <div class="pagination-info">
+                @if(!empty($paginateByDay))
+                    Menampilkan hari {{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}
+                    dari {{ $paginator->total() }} hari
+                @else
+                    Menampilkan {{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}
+                    dari {{ $paginator->total() }} data
+                @endif
+            </div>
+            {{ $paginator->onEachSide(1)->links('vendor.pagination.default') }}
+        </div>
+    </div>
+    @elseif($paginator->total() > 0)
+    <div class="pagination-wrapper">
+        <div class="pagination-info">
+            @if(!empty($paginateByDay))
+                Menampilkan {{ $paginator->total() }} hari
+            @else
+                Menampilkan {{ $paginator->total() }} data
+            @endif
+        </div>
     </div>
     @endif
 </div>

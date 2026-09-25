@@ -46,7 +46,12 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             $query->where('work_type', $this->filters['work_type']);
         }
 
-        // Search by name or NIP
+        // Filter karyawan (dropdown)
+        if (!empty($this->filters['user_id'])) {
+            $query->where('user_id', (int) $this->filters['user_id']);
+        }
+
+        // Search by name or NIP (legacy)
         if (isset($this->filters['search']) && $this->filters['search']) {
             $search = $this->filters['search'];
             $query->whereHas('user', function ($q) use ($search) {
@@ -98,18 +103,8 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     public function map($attendance): array
     {
         $settings = Setting::getSettings();
-        $checkInEnd = Carbon::parse($attendance->attendance_date->format('Y-m-d') . ' ' . ($settings->check_in_end ?: '09:00:00'), 'Asia/Jakarta');
-        $checkInTime = $attendance->check_in ? Carbon::parse($attendance->check_in, 'Asia/Jakarta') : null;
-
-        // Determine status
-        $status = '-';
-        if ($checkInTime) {
-            if ($checkInTime->gt($checkInEnd)) {
-                $status = 'Terlambat';
-            } else {
-                $status = 'Tepat Waktu';
-            }
-        }
+        // Sabtu/Minggu selalu Tepat Waktu (hanya catatan, tidak dihitung terlambat)
+        $status = $attendance->punctualityStatus($settings->check_in_end ?: '09:00:00');
 
         // Keterangan (hanya notes/catatan dari absensi)
         $keterangan = $attendance->notes ?: '-';

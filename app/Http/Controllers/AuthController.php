@@ -49,8 +49,14 @@ class AuthController extends Controller
             
             // Clear any existing flash messages
             $request->session()->forget(['success', 'error']);
-            
-            return redirect()->intended(route('attendance.index'))->with('success', 'Login berhasil!');
+
+            // Jangan follow url.intended yang mengarah ke localhost / host asing
+            // (sering tersimpan dari APP_URL salah atau session lama).
+            $default = route('attendance.index');
+            $intended = $request->session()->pull('url.intended');
+            $target = $this->safeIntendedUrl($intended, $request) ?? $default;
+
+            return redirect()->to($target)->with('success', 'Login berhasil!');
         }
 
         return back()->withErrors([
@@ -88,5 +94,36 @@ class AuthController extends Controller
         }
         
         return redirect()->route('login')->with('success', 'Logout berhasil!');
+    }
+
+    /**
+     * Hanya izinkan redirect intended ke host aplikasi yang valid.
+     */
+    private function safeIntendedUrl(?string $intended, Request $request): ?string
+    {
+        if (!$intended) {
+            return null;
+        }
+
+        $host = parse_url($intended, PHP_URL_HOST);
+        if (!$host) {
+            return null;
+        }
+
+        $blocked = ['localhost', '127.0.0.1', '::1'];
+        if (in_array(strtolower($host), $blocked, true)) {
+            return null;
+        }
+
+        $allowed = array_filter([
+            parse_url((string) config('app.url'), PHP_URL_HOST),
+            $request->getHost(),
+        ]);
+
+        if (!in_array($host, $allowed, true)) {
+            return null;
+        }
+
+        return $intended;
     }
 }

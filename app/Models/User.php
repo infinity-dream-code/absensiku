@@ -20,7 +20,6 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $fillable = [
         'nik',
-        'nip',
         'username',
         'username_mobile',
         'name',
@@ -28,6 +27,10 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'role',
         'jenis',
+        'id_role',
+        'is_penilai',
+        'kpi_indikator_individu',
+        'kpi_bobot_individu',
     ];
 
     /**
@@ -47,7 +50,9 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'jenis' => 'boolean',
+        'is_penilai' => 'boolean',
+        'kpi_indikator_individu' => 'array',
+        'kpi_bobot_individu' => 'array',
     ];
 
     public function attendances()
@@ -58,6 +63,21 @@ class User extends Authenticatable implements JWTSubject
     public function leaves()
     {
         return $this->hasMany(Leave::class);
+    }
+
+    public function referensiWfo()
+    {
+        return $this->hasOne(ReferensiWfo::class, 'custid');
+    }
+
+    public function kpiRole()
+    {
+        return $this->belongsTo(Role::class, 'id_role');
+    }
+
+    public function isPenilai(): bool
+    {
+        return (bool) $this->is_penilai && !empty($this->id_role);
     }
 
     /**

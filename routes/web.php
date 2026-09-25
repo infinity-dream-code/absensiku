@@ -9,6 +9,12 @@ use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\RefBulanController;
+use App\Http\Controllers\Admin\AttendanceSummaryController;
+use App\Http\Controllers\Admin\AttendanceValidationController;
+use App\Http\Controllers\Admin\ReferensiWfoController;
+use App\Http\Controllers\Admin\WfoValidationController;
+use App\Http\Controllers\Admin\KpiAssessmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,23 +28,20 @@ use App\Http\Controllers\Admin\EmployeeController;
 */
 
 Route::get('/', function () {
+    if (auth()->check()) {
+        return auth()->user()->role === 'admin'
+            ? redirect()->route('admin.dashboard')
+            : redirect()->route('attendance.index');
+    }
+
     return redirect()->route('login');
 });
 
 // CSRF Token Route untuk auto-refresh
 Route::get('/csrf-token', function () {
-    return response()->json(['token' => csrf_token()]);
-});
-
-// Route untuk clear session message setelah ditampilkan
-Route::post('/clear-session-message', function (Illuminate\Http\Request $request) {
-    $type = $request->input('type');
-    if ($type === 'success') {
-        $request->session()->forget('success');
-    } elseif ($type === 'error') {
-        $request->session()->forget('error');
-    }
-    return response()->json(['success' => true]);
+    return response()->json(['token' => csrf_token()])
+        ->header('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0')
+        ->header('Pragma', 'no-cache');
 });
 
 // Authentication Routes
@@ -47,7 +50,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/logout', [AuthController::class, 'logout'])->name('logout.get'); // Fallback untuk expired token
 
-// Attendance Routes (Protected - Only for Employees)
+    // Attendance Routes (Protected - Only for Employees)
 Route::middleware(['auth'])->group(function () {
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::post('/attendance/checkin', [AttendanceController::class, 'checkIn'])->name('attendance.checkin');
@@ -62,6 +65,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/change-password', [ProfileController::class, 'changePassword']);
     Route::get('/profile/change-username', [ProfileController::class, 'showChangeUsernameForm'])->name('profile.change-username');
     Route::post('/profile/change-username', [ProfileController::class, 'changeUsername']);
+
+    // KPI Routes (karyawan penilai)
+    Route::get('/kpi', [KpiAssessmentController::class, 'index'])->name('kpi.index');
+    Route::get('/kpi/form', [KpiAssessmentController::class, 'form'])->name('kpi.form');
+    Route::post('/kpi', [KpiAssessmentController::class, 'store'])->name('kpi.store');
+    Route::post('/kpi/indikator', [KpiAssessmentController::class, 'storeUserIndicator'])->name('kpi.indikator.store');
+    Route::put('/kpi/indikator', [KpiAssessmentController::class, 'updateUserIndicator'])->name('kpi.indikator.update');
+    Route::delete('/kpi/indikator', [KpiAssessmentController::class, 'destroyUserIndicator'])->name('kpi.indikator.destroy');
+    Route::get('/kpi/export', [KpiAssessmentController::class, 'export'])->name('kpi.export');
 });
 
 // Admin Routes
@@ -82,11 +94,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
         Route::resource('employees', EmployeeController::class);
         Route::post('/employees/{employee}/reset-password', [EmployeeController::class, 'resetPassword'])->name('employees.reset-password');
-        Route::patch('/employees/{employee}/toggle-jenis', [EmployeeController::class, 'toggleJenis'])->name('employees.toggle-jenis');
+        Route::post('/employees/{employee}/toggle-jenis', [EmployeeController::class, 'toggleJenis'])->name('employees.toggle-jenis');
         Route::get('/attendance-history', [\App\Http\Controllers\Admin\AttendanceHistoryController::class, 'index'])->name('attendance-history.index');
         Route::get('/attendance-history/export', [\App\Http\Controllers\Admin\AttendanceHistoryController::class, 'export'])->name('attendance-history.export');
         Route::get('/attendance-history/export-monthly', [\App\Http\Controllers\Admin\AttendanceHistoryController::class, 'exportMonthlySummary'])->name('attendance-history.export-monthly');
         Route::get('/attendance-history/{attendanceId}/logs', [\App\Http\Controllers\Admin\AttendanceHistoryController::class, 'getLogs'])->name('attendance-history.logs');
+        Route::get('/attendance-summary', [AttendanceSummaryController::class, 'index'])->name('attendance-summary.index');
+        Route::get('/attendance-summary/export', [AttendanceSummaryController::class, 'export'])->name('attendance-summary.export');
+        Route::get('/attendance-validation', [AttendanceValidationController::class, 'index'])->name('attendance-validation.index');
+        Route::post('/attendance-validation/late', [AttendanceValidationController::class, 'validateLate'])->name('attendance-validation.validate-late');
+        Route::get('/referensi-wfo', [ReferensiWfoController::class, 'index'])->name('referensi-wfo.index');
+        Route::post('/referensi-wfo', [ReferensiWfoController::class, 'save'])->name('referensi-wfo.save');
+        Route::get('/wfo-validation', [WfoValidationController::class, 'index'])->name('wfo-validation.index');
+        Route::post('/wfo-validation/apply', [WfoValidationController::class, 'apply'])->name('wfo-validation.apply');
         Route::get('/leave-history', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'index'])->name('leave-history.index');
         Route::put('/leave-history/{leave}', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'update'])->name('leave-history.update');
         Route::delete('/leave-history/{leave}', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'destroy'])->name('leave-history.destroy');
@@ -97,5 +117,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/holiday/sync', [\App\Http\Controllers\Admin\HolidayController::class, 'syncFromApi'])->name('holiday.sync');
         Route::put('/holiday/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'update'])->name('holiday.update');
         Route::delete('/holiday/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'destroy'])->name('holiday.destroy');
+        Route::post('/ref-bulan/refresh', [RefBulanController::class, 'refresh'])->name('ref-bulan.refresh');
+        Route::get('/kpi', [KpiAssessmentController::class, 'index'])->name('kpi.index');
+        Route::get('/kpi/form', [KpiAssessmentController::class, 'form'])->name('kpi.form');
+        Route::post('/kpi', [KpiAssessmentController::class, 'store'])->name('kpi.store');
+        Route::get('/kpi/indikator-role', [KpiAssessmentController::class, 'roleIndicators'])->name('kpi.indikator-role');
+        Route::post('/kpi/indikator-role', [KpiAssessmentController::class, 'updateRoleIndicators'])->name('kpi.indikator-role.update');
+        Route::post('/kpi/indikator', [KpiAssessmentController::class, 'storeUserIndicator'])->name('kpi.indikator.store');
+        Route::put('/kpi/indikator', [KpiAssessmentController::class, 'updateUserIndicator'])->name('kpi.indikator.update');
+        Route::delete('/kpi/indikator', [KpiAssessmentController::class, 'destroyUserIndicator'])->name('kpi.indikator.destroy');
+        Route::get('/kpi/export', [KpiAssessmentController::class, 'export'])->name('kpi.export');
     });
 });

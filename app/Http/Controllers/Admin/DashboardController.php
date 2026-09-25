@@ -29,22 +29,30 @@ class DashboardController extends Controller
             ? Carbon::parse($request->date, 'Asia/Jakarta')->startOfDay()
             : Carbon::today('Asia/Jakarta');
 
-        // Hanya karyawan dengan jenis = true (centang) yang dihitung di dashboard
-        $totalEmployees = User::where('role', 'user')->where('jenis', true)->count();
+        // Hanya karyawan wajib absen (jenis = 1)
+        $employees = User::where('role', 'user')
+            ->where('jenis', 1)
+            ->orderBy('name')
+            ->get();
+        $totalEmployees = $employees->count();
+        $employeeIds = $employees->pluck('id');
 
-        // User yang sudah absen (pakai earliest check_in per user)
-        $attendanceRecords = Attendance::whereDate('attendance_date', $selectedDate)
+        // User yang sudah absen (pakai earliest check_in per user; jenis absen = log terakhir)
+        $attendanceRecords = Attendance::with('logs')
+            ->whereIn('user_id', $employeeIds)
+            ->whereDate('attendance_date', $selectedDate)
             ->whereNotNull('check_in')
             ->get();
         $presentUserIds = $attendanceRecords
             ->groupBy('user_id')
-            ->map(fn($rows) => $rows->sortBy('check_in')->first())
+            ->map(fn ($rows) => $rows->sortBy('check_in')->first())
             ->keys()
             ->flip()
             ->all();
 
         // User yang izin/leave di tanggal tersebut
-        $leaveUserIds = Leave::whereDate('leave_date', $selectedDate)
+        $leaveUserIds = Leave::whereIn('user_id', $employeeIds)
+            ->whereDate('leave_date', $selectedDate)
             ->pluck('user_id')
             ->unique()
             ->flip()
@@ -54,8 +62,6 @@ class DashboardController extends Controller
         $countOnLeave = 0;
         $countAbsent = 0;
         $employeeCards = [];
-
-        $employees = User::where('role', 'user')->where('jenis', true)->orderBy('name')->get();
 
         foreach ($employees as $user) {
             $userId = $user->id;
@@ -75,15 +81,14 @@ class DashboardController extends Controller
             } elseif ($hasAttendance) {
                 $countPresent++;
                 $att = $attendanceRecords->where('user_id', $userId)->sortBy('check_in')->first();
-                $checkInTime = $att && $att->check_in
-                    ? Carbon::parse($att->check_in, 'Asia/Jakarta')->format('H:i')
-                    : '-';
+                $earliest = $att ? $att->earliestCheckInTime() : null;
+                $checkInTime = $earliest ? $earliest->format('H:i') : '-';
                 $employeeCards[] = [
                     'user' => $user,
                     'status' => 'present',
                     'label' => 'Sudah Absen',
                     'detail' => 'Check In: ' . $checkInTime,
-                    'work_type' => $att ? $att->work_type : '-',
+                    'work_type' => $att ? $att->latestWorkType() : '-',
                 ];
             } else {
                 $countAbsent++;

@@ -31,13 +31,9 @@ class AuthController extends Controller
 
         if ($user && $user->role === 'admin' && Hash::check($request->password, $user->password)) {
             // Login dulu dengan token yang valid
-            Auth::login($user, $request->filled('remember'));
-            
-            // JANGAN regenerate session/token setelah login karena akan menyebabkan
-            // token di meta tag tidak match dengan token baru di session
-            // Regenerate hanya saat logout untuk security
-            
-            // Clear any existing flash messages
+            Auth::login($user, true);
+            $request->session()->regenerate();
+
             $request->session()->forget(['success', 'error']);
             
             // Clear intended URL to prevent redirect to attendance page
@@ -62,12 +58,7 @@ class AuthController extends Controller
         
         // Normal POST logout
         Auth::logout();
-        
-        // Invalidate dan flush session setelah logout
         $request->session()->invalidate();
-        $request->session()->flush();
-        
-        // Regenerate token setelah invalidate untuk session baru
         $request->session()->regenerateToken();
         
         // Return JSON jika AJAX request

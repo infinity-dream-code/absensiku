@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="theme-color" content="#667eea">
     <title>@yield('title', 'Absensi ICT')</title>
     
@@ -262,10 +265,18 @@
             </a>
             <div class="nav-actions-wrapper">
                 <div class="nav-actions">
+                    @if(auth()->check())
                     <div class="nav-user">
                         <i class="fas fa-user" style="color:#9ca3af; font-size:13px;"></i>
                         <span>{{ auth()->user()->name }}</span>
                     </div>
+                    @endif
+                    @if(auth()->user()->isPenilai())
+                    <a href="{{ route('kpi.index') }}" class="nav-link">
+                        <i class="fas fa-chart-line" style="font-size:13px;"></i>
+                        <span style="font-size:13px;">Kelola KPI</span>
+                    </a>
+                    @endif
                     <a href="{{ route('leave.index') }}" class="nav-link">
                         <i class="fas fa-calendar-times" style="font-size:13px;"></i>
                         <span style="font-size:13px;">Perizinan</span>
@@ -290,10 +301,18 @@
                     <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <div class="nav-dropdown" id="nav-dropdown">
-                    <div class="nav-dropdown-item" style="pointer-events: none; background: #f9fafb; color: #6b7280;">
-                        <i class="fas fa-user"></i>
-                        <span>{{ auth()->user()->name }}</span>
-                    </div>
+                    @if(auth()->check())
+                        <div class="nav-dropdown-item" style="pointer-events: none; background: #f9fafb; color: #6b7280;">
+                            <i class="fas fa-user"></i>
+                            <span>{{ auth()->user()->name }}</span>
+                        </div>
+                    @endif
+                    @if(auth()->user()->isPenilai())
+                    <a href="{{ route('kpi.index') }}" class="nav-dropdown-item">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Kelola KPI</span>
+                    </a>
+                    @endif
                     <a href="{{ route('leave.index') }}" class="nav-dropdown-item">
                         <i class="fas fa-calendar-times"></i>
                         <span>Perizinan</span>
@@ -323,210 +342,30 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     
+    @include('partials.csrf-handler')
+
     <script>
-        axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        
-        // Function untuk refresh CSRF token
-        function refreshCsrfToken() {
-            return fetch('/csrf-token', {
-                method: 'GET',
-                credentials: 'same-origin',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.token) {
-                      document.querySelector('meta[name="csrf-token"]').setAttribute('content', data.token);
-                      axios.defaults.headers.common['X-CSRF-TOKEN'] = data.token;
-                      document.querySelectorAll('input[name="_token"]').forEach(input => {
-                          input.value = data.token;
-                      });
-                  }
-                  return data.token;
-              }).catch(() => {
-                  return null;
-              });
-        }
-
-        // Tampilkan notifikasi hanya sekali per session message
         @if(session('success'))
-            @php
-                $successMsg = session('success');
-                $msgHash = md5($successMsg . request()->url());
-            @endphp
-            (function() {
-                const message = @json($successMsg);
-                const messageKey = 'shown_success_{{ $msgHash }}';
-                
-                // Cek apakah notifikasi sudah pernah ditampilkan di halaman ini
-                if (!sessionStorage.getItem(messageKey)) {
-                    sessionStorage.setItem(messageKey, '1');
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: message,
-                        timer: 3000,
-                        showConfirmButton: false,
-                        allowOutsideClick: false
-                    }).then(() => {
-                        refreshCsrfToken();
-                        // Hapus session message via AJAX
-                        fetch('/clear-session-message', {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({type: 'success'})
-                        }).catch(() => {});
-                    });
-                } else {
-                    // Jika sudah pernah ditampilkan, langsung hapus session
-                    fetch('/clear-session-message', {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({type: 'success'})
-                    }).catch(() => {});
-                }
-            })();
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: @json(session('success')),
+                timer: 3000,
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
         @endif
-        
+
         @if(session('error'))
-            @php
-                $errorMsg = session('error');
-                $errorHash = md5($errorMsg . request()->url());
-            @endphp
-            (function() {
-                const message = @json($errorMsg);
-                const messageKey = 'shown_error_{{ $errorHash }}';
-                
-                if (!sessionStorage.getItem(messageKey)) {
-                    sessionStorage.setItem(messageKey, '1');
-                    
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: message,
-                        timer: 3000,
-                        showConfirmButton: false,
-                        allowOutsideClick: false
-                    }).then(() => {
-                        refreshCsrfToken();
-                        fetch('/clear-session-message', {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({type: 'error'})
-                        }).catch(() => {});
-                    });
-                } else {
-                    fetch('/clear-session-message', {
-                        method: 'POST',
-                        credentials: 'same-origin',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({type: 'error'})
-                    }).catch(() => {});
-                }
-            })();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: @json(session('error')),
+                timer: 4000,
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
         @endif
-
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Unregister service worker lama yang mungkin cache HTML dengan token lama
-                navigator.serviceWorker.getRegistrations().then((registrations) => {
-                    for (let registration of registrations) {
-                        // Unregister service worker dengan cache name lama
-                        if (registration.active) {
-                            registration.unregister().then(() => {
-                                console.log('Old service worker unregistered');
-                            });
-                        }
-                    }
-                    
-                    // Register service worker baru
-                    navigator.serviceWorker.register('{{ asset("sw.js") }}?v=2')
-                        .then((registration) => {
-                            console.log('Service Worker registered successfully:', registration.scope);
-                            // Force update service worker
-                            registration.update();
-                        })
-                        .catch((error) => {
-                            console.log('Service Worker registration failed:', error);
-                        });
-                });
-            });
-        }
-
-        // Refresh CSRF token saat halaman load dan setelah login/logout
-        function initializeCsrfToken() {
-            return refreshCsrfToken().then(() => {
-                // Update semua form token
-                document.querySelectorAll('input[name="_token"]').forEach(input => {
-                    const metaToken = document.querySelector('meta[name="csrf-token"]');
-                    if (metaToken) {
-                        input.value = metaToken.getAttribute('content');
-                    }
-                });
-                return true;
-            });
-        }
-        
-        // Refresh token hanya saat diperlukan (tidak force refresh)
-        // Karena sekarang tidak regenerate session setelah login,
-        // token di meta tag sudah match dengan session
-        window.addEventListener('DOMContentLoaded', function() {
-            // Sync form token dengan meta tag (tidak perlu refresh dari server)
-            const metaToken = document.querySelector('meta[name="csrf-token"]');
-            if (metaToken) {
-                const token = metaToken.getAttribute('content');
-                document.querySelectorAll('input[name="_token"]').forEach(input => {
-                    input.value = token;
-                });
-                axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
-            }
-        });
-
-        // Handle 419 error (Page Expired) dengan refresh halaman
-        window.addEventListener('unhandledrejection', function(event) {
-            if (event.reason && event.reason.response && event.reason.response.status === 419) {
-                // Jika 419 error, refresh halaman untuk mendapatkan token baru
-                window.location.reload();
-            }
-        });
-
-        // Intercept form submission untuk memastikan token valid
-        document.addEventListener('submit', function(e) {
-            const form = e.target;
-            if (form.tagName === 'FORM' && form.method.toUpperCase() === 'POST') {
-                // Skip untuk logout form karena sudah dihandle khusus
-                if (form.id === 'logout-form') {
-                    e.preventDefault();
-                    return;
-                }
-                
-                const tokenInput = form.querySelector('input[name="_token"]');
-                const metaToken = document.querySelector('meta[name="csrf-token"]');
-                
-                // Pastikan token form sama dengan token meta
-                if (tokenInput && metaToken && tokenInput.value !== metaToken.getAttribute('content')) {
-                    tokenInput.value = metaToken.getAttribute('content');
-                }
-            }
-        }, false);
 
         // Handle mobile menu toggle
         const menuToggle = document.getElementById('nav-menu-toggle');

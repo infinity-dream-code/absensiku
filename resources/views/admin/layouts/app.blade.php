@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="theme-color" content="#667eea">
     <title>@yield('title', 'Admin Dashboard - Absensi ICT')</title>
     
@@ -148,6 +151,59 @@
         .sidebar-footer {
             padding: 16px;
             border-top: 1px solid #e5e7eb;
+        }
+
+        .nav-group {
+            margin-bottom: 8px;
+        }
+
+        .nav-group-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            user-select: none;
+            transition: all 0.2s;
+        }
+
+        .nav-group-toggle:hover {
+            background: #f3f4f6;
+        }
+
+        .nav-group-toggle i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .nav-group-chevron {
+            margin-left: auto;
+            font-size: 12px;
+        }
+
+        .nav-submenu {
+            display: none;
+            flex-direction: column;
+            padding-left: 32px;
+        }
+
+        .nav-submenu.open {
+            display: flex;
+        }
+
+        .nav-submenu .nav-item {
+            font-size: 14px;
+            padding: 10px 12px;
+            gap: 10px;
+        }
+
+        .nav-submenu .nav-item i {
+            width: 18px;
+            font-size: 14px;
         }
         
         .user-info {
@@ -323,8 +379,30 @@
         </div>
         
         <nav class="sidebar-nav">
+            @php
+                $isPenilaiMode = auth()->check()
+                    && auth()->user()->role !== 'admin'
+                    && auth()->user()->isPenilai()
+                    && request()->routeIs('kpi.*');
+                $isReportActive = request()->routeIs('admin.attendance-history.*')
+                    || request()->routeIs('admin.attendance-summary.*');
+                $isValidationActive = request()->routeIs('admin.attendance-validation.*')
+                    || request()->routeIs('admin.wfo-validation.*');
+                $isKpiActive = request()->routeIs('admin.kpi.*');
+            @endphp
+
+            @if($isPenilaiMode)
+                <a href="{{ route('kpi.index') }}" class="nav-item {{ request()->routeIs('kpi.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Kelola KPI</span>
+                </a>
+                <a href="{{ route('attendance.index') }}" class="nav-item">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>Absensi</span>
+                </a>
+            @else
             <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                <i class="fas fa-chart-line"></i>
+                <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
             <a href="{{ route('admin.settings.index') }}" class="nav-item {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
@@ -335,10 +413,64 @@
                 <i class="fas fa-users"></i>
                 <span>Kelola Karyawan</span>
             </a>
-            <a href="{{ route('admin.attendance-history.index') }}" class="nav-item {{ request()->routeIs('admin.attendance-history.*') ? 'active' : '' }}">
-                <i class="fas fa-history"></i>
-                <span>History Absensi</span>
+            <div class="nav-group">
+                <div class="nav-group-toggle" data-nav-group="report-absensi">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Report Absensi</span>
+                    <span class="nav-group-chevron">
+                        <i class="fas fa-chevron-{{ $isReportActive ? 'down' : 'right' }}"></i>
+                    </span>
+                </div>
+                <div class="nav-submenu {{ $isReportActive ? 'open' : '' }}" id="nav-group-report-absensi">
+                    <a href="{{ route('admin.attendance-history.index') }}" class="nav-item {{ request()->routeIs('admin.attendance-history.*') ? 'active' : '' }}" style="margin-bottom: 4px; padding: 8px 12px;">
+                        <span>History Absensi</span>
+                    </a>
+                    <a href="{{ route('admin.attendance-summary.index') }}" class="nav-item {{ request()->routeIs('admin.attendance-summary.*') ? 'active' : '' }}" style="margin-bottom: 0; padding: 8px 12px;">
+                        <span>Summary Absensi</span>
+                    </a>
+                </div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-toggle" data-nav-group="validasi">
+                    <i class="fas fa-check-double"></i>
+                    <span>Validasi</span>
+                    <span class="nav-group-chevron">
+                        <i class="fas fa-chevron-{{ $isValidationActive ? 'down' : 'right' }}"></i>
+                    </span>
+                </div>
+                <div class="nav-submenu {{ $isValidationActive ? 'open' : '' }}" id="nav-group-validasi">
+                    <a href="{{ route('admin.attendance-validation.index') }}" class="nav-item {{ request()->routeIs('admin.attendance-validation.*') ? 'active' : '' }}" style="margin-bottom: 0; padding: 8px 12px;">
+                        <span>Validasi Alpha</span>
+                    </a>
+                    <a href="{{ route('admin.wfo-validation.index') }}" class="nav-item {{ request()->routeIs('admin.wfo-validation.*') ? 'active' : '' }}" style="margin-bottom: 0; padding: 8px 12px;">
+                        <span>Validasi WFO</span>
+                    </a>
+                </div>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-toggle" data-nav-group="kpi">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Kelola KPI</span>
+                    <span class="nav-group-chevron">
+                        <i class="fas fa-chevron-{{ $isKpiActive ? 'down' : 'right' }}"></i>
+                    </span>
+                </div>
+                <div class="nav-submenu {{ $isKpiActive ? 'open' : '' }}" id="nav-group-kpi">
+                    <a href="{{ route('admin.kpi.index') }}" class="nav-item {{ request()->routeIs('admin.kpi.index') || request()->routeIs('admin.kpi.form') || request()->routeIs('admin.kpi.store') || request()->routeIs('admin.kpi.export') || request()->routeIs('admin.kpi.indikator.store') || request()->routeIs('admin.kpi.indikator.update') || request()->routeIs('admin.kpi.indikator.destroy') ? 'active' : '' }}" style="margin-bottom: 4px;">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Daftar Penilaian</span>
+                    </a>
+                    <a href="{{ route('admin.kpi.indikator-role') }}" class="nav-item {{ request()->routeIs('admin.kpi.indikator-role*') ? 'active' : '' }}" style="margin-bottom: 0;">
+                        <i class="fas fa-list-ul"></i>
+                        <span>Indikator Role</span>
+                    </a>
+                </div>
+            </div>
+            <a href="{{ route('admin.referensi-wfo.index') }}" class="nav-item {{ request()->routeIs('admin.referensi-wfo.*') ? 'active' : '' }}">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Referensi WFO</span>
             </a>
+
             <a href="{{ route('admin.leave-history.index') }}" class="nav-item {{ request()->routeIs('admin.leave-history.*') ? 'active' : '' }}">
                 <i class="fas fa-calendar-times"></i>
                 <span>History Izin</span>
@@ -351,19 +483,22 @@
                 <i class="fas fa-calendar-alt"></i>
                 <span>Libur</span>
             </a>
+            @endif
         </nav>
         
         <div class="sidebar-footer">
-            <div class="user-info">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
+            @if(auth()->check())
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">{{ auth()->user()->name }}</div>
+                        <div class="user-role">{{ $isPenilaiMode ? 'Penilai KPI' : 'Administrator' }}</div>
+                    </div>
                 </div>
-                <div class="user-details">
-                    <div class="user-name">{{ auth()->user()->name }}</div>
-                    <div class="user-role">Administrator</div>
-                </div>
-            </div>
-            <form id="admin-logout-form" action="{{ route('admin.logout') }}" method="POST">
+            @endif
+            <form id="admin-logout-form" action="{{ $isPenilaiMode ? route('logout') : route('admin.logout') }}" method="POST">
                 @csrf
                 <button type="button" id="admin-logout-btn" class="btn-logout">
                     <i class="fas fa-sign-out-alt"></i>
@@ -569,14 +704,14 @@
                                 if (data.redirect) {
                                     window.location.href = data.redirect;
                                 } else {
-                                    window.location.href = '{{ route("admin.login") }}';
+                                    window.location.href = '{{ $isPenilaiMode ? route("login") : route("admin.login") }}';
                                 }
                             });
                         } else {
                             // Jika masih error, gunakan GET fallback
                             sessionStorage.clear();
                             localStorage.clear();
-                            window.location.href = '{{ route("admin.logout") }}?fallback=1';
+                            window.location.href = '{{ $isPenilaiMode ? route("login") : route("admin.logout") }}?fallback=1';
                         }
                     })
                     .catch(error => {
@@ -617,6 +752,36 @@
                 });
             });
         }
+
+        // Sidebar nav-group dropdown (Report Absensi)
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggles = document.querySelectorAll('.nav-group-toggle');
+            toggles.forEach(function (toggle) {
+                toggle.addEventListener('click', function () {
+                    const key = this.getAttribute('data-nav-group');
+                    if (!key) return;
+                    const submenu = document.getElementById('nav-group-' + key);
+                    if (!submenu) return;
+
+                    const isOpen = submenu.classList.contains('open');
+                    if (isOpen) {
+                        submenu.classList.remove('open');
+                        const icon = this.querySelector('.nav-group-chevron i');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-right');
+                        }
+                    } else {
+                        submenu.classList.add('open');
+                        const icon = this.querySelector('.nav-group-chevron i');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-right');
+                            icon.classList.add('fa-chevron-down');
+                        }
+                    }
+                });
+            });
+        });
     </script>
     
     @yield('scripts')

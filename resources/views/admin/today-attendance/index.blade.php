@@ -239,6 +239,16 @@
     <p class="page-subtitle">Ringkasan absensi per tanggal</p>
 </div>
 
+<div style="margin-bottom: 16px;">
+    <form method="POST" action="{{ route('admin.ref-bulan.refresh') }}" onsubmit="return confirm('Generate / update Ref Bulan untuk tahun berjalan?');" style="display: inline-block;">
+        @csrf
+        <button type="submit" class="btn-apply">
+            <i class="fas fa-sync-alt"></i>
+            Ref Bulan
+        </button>
+    </form>
+</div>
+
 <form method="GET" action="{{ route('admin.dashboard') }}" class="filter-card">
     <div class="filter-form">
         <label for="date">Pilih Tanggal</label>

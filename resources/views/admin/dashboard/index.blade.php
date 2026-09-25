@@ -337,6 +337,38 @@
 </style>
 @endsection
 
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var card = document.getElementById('report-absensi-card');
+        var dropdown = document.getElementById('report-absensi-dropdown');
+        var validationCard = document.getElementById('validasi-card');
+        var validationDropdown = document.getElementById('validasi-dropdown');
+
+        if (card && dropdown) {
+            card.addEventListener('click', function () {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            });
+        }
+
+        if (validationCard && validationDropdown) {
+            validationCard.addEventListener('click', function () {
+                validationDropdown.style.display = validationDropdown.style.display === 'block' ? 'none' : 'block';
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+            if (card && dropdown && !card.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+            if (validationCard && validationDropdown && !validationCard.contains(e.target)) {
+                validationDropdown.style.display = 'none';
+            }
+        });
+    });
+</script>
+@endsection
+
 @section('content')
 <div class="page-header">
     <h1 class="page-title">Dashboard</h1>
@@ -425,13 +457,59 @@
             </div>
         </a>
         
-        <a href="{{ route('admin.attendance-history.index') }}" class="action-card purple">
+        <div class="action-card purple" style="position: relative; cursor: pointer;" id="report-absensi-card">
             <div class="action-icon purple">
-                <i class="fas fa-history"></i>
+                <i class="fas fa-file-alt"></i>
             </div>
             <div class="action-content">
-                <p class="action-title">History Absensi</p>
-                <p class="action-desc">Lihat riwayat absensi</p>
+                <p class="action-title">Report Absensi</p>
+                <p class="action-desc">History, summary, validasi, WFO</p>
+            </div>
+            <div style="margin-left:auto; color:#6b7280;">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div id="report-absensi-dropdown" style="display:none; position:absolute; left:0; right:0; top:100%; margin-top:8px; background:#ffffff; border-radius:8px; box-shadow:0 10px 20px rgba(15,23,42,0.15); padding:8px 0; z-index:20;">
+                <a href="{{ route('admin.attendance-history.index') }}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; text-decoration:none; color:#111827; font-size:14px;">
+                    <i class="fas fa-history" style="width:18px; text-align:center;"></i>
+                    <span>History Absensi</span>
+                </a>
+                <a href="{{ route('admin.attendance-summary.index') }}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; text-decoration:none; color:#111827; font-size:14px;">
+                    <i class="fas fa-chart-bar" style="width:18px; text-align:center;"></i>
+                    <span>Summary Absensi</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="action-card purple" style="position: relative; cursor: pointer;" id="validasi-card">
+            <div class="action-icon purple">
+                <i class="fas fa-check-double"></i>
+            </div>
+            <div class="action-content">
+                <p class="action-title">Validasi</p>
+                <p class="action-desc">Validasi Alpha & WFO</p>
+            </div>
+            <div style="margin-left:auto; color:#6b7280;">
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div id="validasi-dropdown" style="display:none; position:absolute; left:0; right:0; top:100%; margin-top:8px; background:#ffffff; border-radius:8px; box-shadow:0 10px 20px rgba(15,23,42,0.15); padding:8px 0; z-index:20;">
+                <a href="{{ route('admin.attendance-validation.index') }}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; text-decoration:none; color:#111827; font-size:14px;">
+                    <i class="fas fa-calendar-check" style="width:18px; text-align:center;"></i>
+                    <span>Validasi Alpha</span>
+                </a>
+                <a href="{{ route('admin.wfo-validation.index') }}" style="display:flex; align-items:center; gap:10px; padding:10px 16px; text-decoration:none; color:#111827; font-size:14px;">
+                    <i class="fas fa-user-check" style="width:18px; text-align:center;"></i>
+                    <span>Validasi WFO</span>
+                </a>
+            </div>
+        </div>
+        
+        <a href="{{ route('admin.referensi-wfo.index') }}" class="action-card blue">
+            <div class="action-icon blue">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="action-content">
+                <p class="action-title">Referensi WFO</p>
+                <p class="action-desc">Atur jadwal WFO karyawan</p>
             </div>
         </a>
         

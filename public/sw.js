@@ -1,4 +1,4 @@
-const CACHE_NAME = 'absensi-ict-v2';
+const CACHE_NAME = 'absensi-ict-v3';
 const urlsToCache = [
   // Hanya cache static assets, JANGAN cache HTML pages
   '/manifest.json',
