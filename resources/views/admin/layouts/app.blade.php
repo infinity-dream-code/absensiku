@@ -596,6 +596,83 @@
               });
         }
 
+        (function () {
+            var nativeFetch = window.fetch.bind(window);
+
+            function requestUrl(input) {
+                if (typeof input === 'string') {
+                    return input;
+                }
+                return input && input.url ? input.url : '';
+            }
+
+            window.fetch = function (input, init) {
+                var options = init || {};
+                return nativeFetch(input, options).then(function (response) {
+                    var url = requestUrl(input);
+                    if (response.status !== 419 || options._csrfRetried || url.indexOf('/csrf-token') !== -1) {
+                        return response;
+                    }
+
+                    return refreshCsrfToken().then(function () {
+                        var retry = Object.assign({}, options, { _csrfRetried: true });
+                        var meta = document.querySelector('meta[name="csrf-token"]');
+                        var token = meta ? meta.getAttribute('content') : '';
+                        if (token) {
+                            var headers = new Headers(retry.headers || (input instanceof Request ? input.headers : undefined));
+                            headers.set('X-CSRF-TOKEN', token);
+                            headers.set('X-Requested-With', 'XMLHttpRequest');
+                            retry.headers = headers;
+                            if (retry.body instanceof FormData) {
+                                retry.body.set('_token', token);
+                            }
+                        }
+                        return nativeFetch(input, retry);
+                    });
+                });
+            };
+        })();
+
+        axios.interceptors.response.use(function (response) {
+            return response;
+        }, function (error) {
+            var config = error.config || {};
+            var url = config.url || '';
+            if (!(error.response && error.response.status === 419) || config._csrfRetried || url.indexOf('/csrf-token') !== -1) {
+                return Promise.reject(error);
+            }
+
+            config._csrfRetried = true;
+            return refreshCsrfToken().then(function (token) {
+                var meta = document.querySelector('meta[name="csrf-token"]');
+                config.headers = config.headers || {};
+                if (meta) {
+                    config.headers['X-CSRF-TOKEN'] = meta.getAttribute('content');
+                }
+                if (token && config.data instanceof FormData) {
+                    config.data.set('_token', token);
+                }
+                return axios(config);
+            });
+        });
+
+        var keepAliveRunning = false;
+        function keepAlive() {
+            if (keepAliveRunning) {
+                return;
+            }
+            keepAliveRunning = true;
+            refreshCsrfToken().finally(function () {
+                keepAliveRunning = false;
+            });
+        }
+        setInterval(keepAlive, 4 * 60 * 1000);
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                keepAlive();
+            }
+        });
+
         // Refresh CSRF token saat halaman load dan setelah login/logout
         function initializeCsrfToken() {
             return refreshCsrfToken().then(() => {
@@ -622,14 +699,6 @@
                     input.value = token;
                 });
                 axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
-            }
-        });
-
-        // Handle 419 error (Page Expired) dengan refresh halaman
-        window.addEventListener('unhandledrejection', function(event) {
-            if (event.reason && event.reason.response && event.reason.response.status === 419) {
-                // Jika 419 error, refresh halaman untuk mendapatkan token baru
-                window.location.reload();
             }
         });
 
@@ -727,29 +796,12 @@
 
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Unregister service worker lama yang mungkin cache HTML dengan token lama
-                navigator.serviceWorker.getRegistrations().then((registrations) => {
-                    for (let registration of registrations) {
-                        // Unregister service worker dengan cache name lama
-                        if (registration.active) {
-                            registration.unregister().then(() => {
-                                console.log('Old service worker unregistered');
-                            });
-                        }
-                    }
-                    
-                    // Register service worker baru
-                    navigator.serviceWorker.register('{{ asset("sw.js") }}?v=2')
-                        .then((registration) => {
-                            console.log('Service Worker registered successfully:', registration.scope);
-                            // Force update service worker
-                            registration.update();
-                        })
-                        .catch((error) => {
-                            console.log('Service Worker registration failed:', error);
-                        });
-                });
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js?v=4')
+                    .then(function (registration) {
+                        registration.update();
+                    })
+                    .catch(function () {});
             });
         }
 

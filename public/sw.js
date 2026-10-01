@@ -1,4 +1,4 @@
-const CACHE_NAME = 'absensi-ict-v3';
+const CACHE_NAME = 'absensi-ict-v4';
 const urlsToCache = [
   // Hanya cache static assets, JANGAN cache HTML pages
   '/manifest.json',
@@ -73,18 +73,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // JANGAN cache HTML pages, POST requests, atau request dengan credentials
-  // Ini penting untuk CSRF token dan session
-  if (event.request.method === 'POST' || 
-      event.request.mode === 'cors' ||
-      event.request.credentials === 'include' ||
+  // Jangan sentuh POST/login/absensi. iOS sering kehilangan cookie
+  // kalau service worker yang mengulang request tersebut.
+  if (event.request.method !== 'GET' ||
       event.request.url.includes('/csrf-token') ||
-      event.request.url.includes('/clear-session-message') ||
       event.request.url.includes('/login') ||
       event.request.url.includes('/logout') ||
+      event.request.url.includes('/attendance') ||
       event.request.destination === 'document') {
-    // Langsung fetch dari network tanpa cache
-    return event.respondWith(fetch(event.request));
+    return;
   }
 
   // Hanya cache static assets (CSS, JS, images)

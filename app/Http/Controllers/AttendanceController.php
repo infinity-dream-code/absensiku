@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
@@ -257,10 +258,52 @@ class AttendanceController extends Controller
 
     public function checkIn(Request $request)
     {
+        $clientToken = substr((string) $request->input('client_token'), 0, 64);
+        $cacheKey = $clientToken !== '' ? 'checkin:' . Auth::id() . ':' . $clientToken : null;
+
+        if ($cacheKey && !Cache::add($cacheKey, 1, now()->addMinutes(10))) {
+            $today = Carbon::today('Asia/Jakarta');
+            $attendance = Attendance::where('user_id', Auth::id())
+                ->whereDate('attendance_date', $today)
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Check-in berhasil!',
+                'location_valid' => $attendance->location_valid ?? true,
+                'attendance' => $attendance,
+            ]);
+        }
+
+        try {
+            return $this->storeCheckIn($request);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($cacheKey) {
+                Cache::forget($cacheKey);
+            }
+            throw $e;
+        } catch (\Throwable $e) {
+            if ($cacheKey) {
+                Cache::forget($cacheKey);
+            }
+            Log::error('Check-in failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Check-in belum tersimpan. Silakan coba lagi.',
+            ], 422);
+        }
+    }
+
+    private function storeCheckIn(Request $request)
+    {
         $request->validate([
             'work_type' => 'required|in:WFA,WFO,WFH',
             'notes' => 'nullable|string|max:500',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+            'image' => 'nullable|file|max:8192',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
         ]);
@@ -388,10 +431,10 @@ class AttendanceController extends Controller
                 $imageUrl = $uploadedFile->getSecurePath();
                 $data['image'] = $imageUrl;
             } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal mengupload gambar: ' . $e->getMessage()
-                ], 500);
+                Log::warning('Check-in image upload skipped', [
+                    'user_id' => Auth::id(),
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -507,7 +550,8 @@ class AttendanceController extends Controller
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Absensi ICT App');
-        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 2);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Accept-Language: id,en'
         ]);

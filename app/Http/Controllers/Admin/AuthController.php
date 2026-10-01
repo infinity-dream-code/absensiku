@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Support\PersistentLogin;
 
 class AuthController extends Controller
 {
@@ -32,7 +33,7 @@ class AuthController extends Controller
         if ($user && $user->role === 'admin' && Hash::check($request->password, $user->password)) {
             // Login dulu dengan token yang valid
             Auth::login($user, true);
-            $request->session()->regenerate();
+            PersistentLogin::put($user);
 
             $request->session()->forget(['success', 'error']);
             
@@ -51,6 +52,7 @@ class AuthController extends Controller
         // Handle GET fallback untuk logout jika CSRF token expired
         if ($request->method() === 'GET' && $request->has('fallback')) {
             Auth::logout();
+            PersistentLogin::forget();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             return redirect()->route('admin.login')->with('success', 'Logout berhasil!');
@@ -58,6 +60,7 @@ class AuthController extends Controller
         
         // Normal POST logout
         Auth::logout();
+        PersistentLogin::forget();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         

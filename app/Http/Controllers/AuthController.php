@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Support\PersistentLogin;
 
 class AuthController extends Controller
 {
@@ -42,6 +43,7 @@ class AuthController extends Controller
             
             // Login dulu dengan token yang valid
             Auth::login($user, $request->filled('remember'));
+            PersistentLogin::put($user);
             
             // JANGAN regenerate session/token setelah login karena akan menyebabkan
             // token di meta tag tidak match dengan token baru di session
@@ -52,9 +54,8 @@ class AuthController extends Controller
 
             // Jangan follow url.intended yang mengarah ke localhost / host asing
             // (sering tersimpan dari APP_URL salah atau session lama).
-            $default = route('attendance.index');
             $intended = $request->session()->pull('url.intended');
-            $target = $this->safeIntendedUrl($intended, $request) ?? $default;
+            $target = $this->safeIntendedUrl($intended, $request) ?? '/attendance';
 
             return redirect()->to($target)->with('success', 'Login berhasil!');
         }
@@ -69,6 +70,7 @@ class AuthController extends Controller
         // Handle GET fallback untuk logout jika CSRF token expired
         if ($request->method() === 'GET' && $request->has('fallback')) {
             Auth::logout();
+            PersistentLogin::forget();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             return redirect()->route('login')->with('success', 'Logout berhasil!');
@@ -76,6 +78,7 @@ class AuthController extends Controller
         
         // Normal POST logout
         Auth::logout();
+        PersistentLogin::forget();
         
         // Invalidate dan flush session setelah logout
         $request->session()->invalidate();
@@ -105,9 +108,13 @@ class AuthController extends Controller
             return null;
         }
 
+        $path = parse_url($intended, PHP_URL_PATH) ?: '/';
+        $query = parse_url($intended, PHP_URL_QUERY);
+        $target = $path . ($query ? '?' . $query : '');
+
         $host = parse_url($intended, PHP_URL_HOST);
         if (!$host) {
-            return null;
+            return str_starts_with($target, '/') ? $target : null;
         }
 
         $blocked = ['localhost', '127.0.0.1', '::1'];
@@ -115,15 +122,10 @@ class AuthController extends Controller
             return null;
         }
 
-        $allowed = array_filter([
-            parse_url((string) config('app.url'), PHP_URL_HOST),
-            $request->getHost(),
-        ]);
-
-        if (!in_array($host, $allowed, true)) {
+        if (strcasecmp($host, $request->getHost()) !== 0) {
             return null;
         }
 
-        return $intended;
+        return $target;
     }
 }

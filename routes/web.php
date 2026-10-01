@@ -37,6 +37,10 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/home', function () {
+    return redirect()->route('admin.index');
+});
+
 // CSRF Token Route untuk auto-refresh
 Route::get('/csrf-token', function () {
     return response()->json(['token' => csrf_token()])
@@ -78,6 +82,18 @@ Route::middleware(['auth'])->group(function () {
 
 // Admin Routes
 Route::prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', function () {
+        if (auth()->check() && auth()->user()->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if (auth()->check()) {
+            return redirect()->route('attendance.index');
+        }
+
+        return redirect()->route('admin.login');
+    })->name('index');
+
     // Admin Auth
     Route::get('/ict-login', [AdminAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/ict-login', [AdminAuthController::class, 'login']);

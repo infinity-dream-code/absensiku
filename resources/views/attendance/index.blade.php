@@ -1132,7 +1132,7 @@
             </div>
             <div class="summary-collapsible">
                 <div class="summary-header" style="padding-top:0; background:transparent; border-bottom:0;">
-                <form method="GET" action="{{ route('attendance.index') }}" class="summary-filters" id="summaryFilterForm">
+                <form method="GET" action="/attendance" class="summary-filters" id="summaryFilterForm">
                     <input type="hidden" name="kpi_year" value="{{ $kpiView['year'] }}">
                     <input type="hidden" name="kpi_month" value="{{ $kpiView['month'] }}">
                     <div>
@@ -1294,7 +1294,7 @@
                         </div>
                     </div>
                 </div>
-                <form method="GET" action="{{ route('attendance.index') }}" class="summary-filters" id="kpiFilterForm">
+                <form method="GET" action="/attendance" class="summary-filters" id="kpiFilterForm">
                     <input type="hidden" name="year" value="{{ $summary['year'] }}">
                     <input type="hidden" name="month" value="{{ $summary['all_months'] ? 'all' : $summary['month'] }}">
                     <div>
@@ -1936,11 +1936,113 @@
     }
 
 
+    function compressCheckInImage(file) {
+        return new Promise(function (resolve) {
+            if (!file) {
+                resolve(null);
+                return;
+            }
+            var img = new Image();
+            var objectUrl = URL.createObjectURL(file);
+            img.onload = function () {
+                var maxSide = 1600;
+                var width = img.width;
+                var height = img.height;
+                if (width > maxSide || height > maxSide) {
+                    if (width > height) {
+                        height = Math.round(height * maxSide / width);
+                        width = maxSide;
+                    } else {
+                        width = Math.round(width * maxSide / height);
+                        height = maxSide;
+                    }
+                }
+                var canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                canvas.toBlob(function (blob) {
+                    URL.revokeObjectURL(objectUrl);
+                    if (!blob) {
+                        resolve(file);
+                        return;
+                    }
+                    resolve(new File([blob], 'checkin.jpg', { type: 'image/jpeg' }));
+                }, 'image/jpeg', 0.72);
+            };
+            img.onerror = function () {
+                URL.revokeObjectURL(objectUrl);
+                resolve(file);
+            };
+            img.src = objectUrl;
+        });
+    }
+
+    function postAttendance(url, payload) {
+        function applyToken(token) {
+            if (!token) {
+                return;
+            }
+            var meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) {
+                meta.setAttribute('content', token);
+            }
+            if (window.axios) {
+                axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+            }
+            if (payload instanceof FormData) {
+                payload.set('_token', token);
+            }
+        }
+
+        function send(attempt) {
+            return axios.post(url, payload, {
+                withCredentials: true,
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function (response) {
+                var data = response.data;
+                if (data && typeof data === 'object' && data.success === true) {
+                    return response;
+                }
+                if (attempt < 1 && response.status !== 400) {
+                    return refreshAndRetry(attempt);
+                }
+                return Promise.reject({ response: response });
+            }, function (error) {
+                var status = error.response && error.response.status;
+                if (attempt < 1 && (!status || status === 419 || status === 401 || status === 422 || status === 500 || status === 503)) {
+                    return refreshAndRetry(attempt);
+                }
+                return Promise.reject(error);
+            });
+        }
+
+        function refreshAndRetry(attempt) {
+            var refresh = window.refreshCsrfToken ? window.refreshCsrfToken() : Promise.resolve(null);
+            return Promise.resolve(refresh).then(function (token) {
+                applyToken(token);
+                return send(attempt + 1);
+            });
+        }
+
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        applyToken(meta ? meta.getAttribute('content') : '');
+        return send(0);
+    }
+
     function submitCheckIn(latitude, longitude, locationValid = true) {
+        const checkInBtn = document.getElementById('checkInBtn');
+        if (checkInBtn) {
+            checkInBtn.disabled = true;
+        }
         const formData = new FormData();
         const workType = document.getElementById('work_type').value;
         formData.append('work_type', workType);
         formData.append('notes', document.getElementById('notes').value);
+        formData.append('client_token', Date.now().toString(36) + Math.random().toString(36).slice(2));
         
         // Simpan lokasi untuk semua work type (WFA, WFH, WFO)
         if (latitude && longitude) {
@@ -1949,9 +2051,6 @@
         }
         
         const imageFile = document.getElementById('image').files[0];
-        if (imageFile) {
-            formData.append('image', imageFile);
-        }
 
         Swal.fire({
             title: 'Memproses...',
@@ -1963,10 +2062,11 @@
             }
         });
 
-        axios.post('{{ route('attendance.checkin') }}', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
+        compressCheckInImage(imageFile).then(function (compressed) {
+            if (compressed) {
+                formData.append('image', compressed);
             }
+            return postAttendance('/attendance/checkin', formData);
         })
         .then(response => {
             let icon = 'success';
@@ -2007,10 +2107,15 @@
             }
             Swal.fire({
                 icon: 'error',
-                title: 'Error!',
+                title: 'Gagal',
                 text: message,
                 confirmButtonColor: '#6366f1'
             });
+        })
+        .finally(function () {
+            if (checkInBtn) {
+                checkInBtn.disabled = false;
+            }
         });
     }
 
@@ -2045,7 +2150,7 @@
                     }
                 });
 
-                axios.post('{{ route('attendance.checkout') }}')
+                postAttendance('/attendance/checkout')
                     .then(response => {
                         Swal.fire({
                             icon: 'success',

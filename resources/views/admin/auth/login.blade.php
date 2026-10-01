@@ -257,7 +257,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('admin.login') }}" class="login-form">
+            <form method="POST" action="/admin/ict-login" class="login-form">
                 @csrf
                 
                 <div class="form-group">

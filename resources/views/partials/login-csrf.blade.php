@@ -60,23 +60,23 @@
                 event.preventDefault();
 
                 refreshCsrfToken().finally(function () {
-                    form.dataset.csrfReady = '1';
-                    if (typeof form.requestSubmit === 'function') {
-                        form.requestSubmit();
-                    } else {
-                        form.submit();
-                    }
+                    setTimeout(function () {
+                        form.dataset.csrfReady = '1';
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit();
+                        } else {
+                            form.submit();
+                        }
+                    }, 150);
                 });
             });
         });
     });
 
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (registrations) {
-            registrations.forEach(function (registration) {
-                registration.unregister();
-            });
-        });
+        navigator.serviceWorker.register('/sw.js?v=4').then(function (registration) {
+            registration.update();
+        }).catch(function () {});
     }
 })();
 </script>

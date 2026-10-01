@@ -230,7 +230,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('login') }}" class="login-form" style="width: 100%; box-sizing: border-box;">
+        <form method="POST" action="/login" class="login-form" style="width: 100%; box-sizing: border-box;">
             @csrf
             
             <div class="form-group">

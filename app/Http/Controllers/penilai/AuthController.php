@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Penilai;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\PersistentLogin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -41,6 +42,7 @@ class AuthController extends Controller
             && Hash::check($request->password, $user->password)
         ) {
             Auth::login($user, $request->filled('remember'));
+            PersistentLogin::put($user);
             $request->session()->forget(['success', 'error', 'url.intended']);
 
             return redirect()->route('penilai.kpi.index')->with('success', 'Login penilai berhasil!');
@@ -54,6 +56,7 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         Auth::logout();
+        PersistentLogin::forget();
         $request->session()->invalidate();
         $request->session()->flush();
         $request->session()->regenerateToken();

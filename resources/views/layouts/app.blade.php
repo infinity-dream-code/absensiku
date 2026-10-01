@@ -289,7 +289,7 @@
                         <i class="fas fa-key" style="font-size:13px;"></i>
                         <span style="font-size:13px;">Ganti Password</span>
                     </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="margin:0;">
+                    <form id="logout-form" action="/logout" method="POST" style="margin:0;">
                         @csrf
                         <button type="button" id="logout-btn" class="nav-button">
                             <i class="fas fa-sign-out-alt" style="font-size:13px;"></i>
