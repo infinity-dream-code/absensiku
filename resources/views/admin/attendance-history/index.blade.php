@@ -608,7 +608,7 @@
                 <option value="">Semua karyawan</option>
                 @foreach($employees as $employee)
                     <option value="{{ $employee->id }}" {{ (string) request('user_id') === (string) $employee->id ? 'selected' : '' }}>
-                        {{ $employee->name }}{{ $employee->nik ? ' (' . $employee->nik . ')' : '' }}
+                        {{ $employee->name }}{{ $employee->nip ? ' (' . $employee->nip . ')' : '' }}
                     </option>
                 @endforeach
             </select>
@@ -642,7 +642,7 @@
                 <tr>
                     <th style="width: 48px;"></th>
                     <th>Tanggal</th>
-                    <th>NIK</th>
+                    <th>NIP</th>
                     <th>Nama</th>
                     <th>Jenis</th>
                     <th>Check-In</th>
@@ -693,7 +693,7 @@
                         </button>
                     </td>
                     <td>{{ \Carbon\Carbon::parse($attendance->attendance_date)->locale('id')->isoFormat('D MMM YYYY') }}</td>
-                    <td style="font-weight: 600;">{{ $attendance->user->nik }}</td>
+                    <td style="font-weight: 600;">{{ $attendance->user->nip ?: '-' }}</td>
                     <td>{{ $attendance->user->name }}</td>
                     <td>
                         <span class="badge badge-{{ strtolower($attendance->work_type) }}">
