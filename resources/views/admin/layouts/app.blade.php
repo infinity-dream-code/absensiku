@@ -498,7 +498,7 @@
                     </div>
                 </div>
             @endif
-            <form id="admin-logout-form" action="{{ $isPenilaiMode ? route('logout') : route('admin.logout') }}" method="POST">
+            <form id="admin-logout-form" action="{{ $isPenilaiMode ? '/logout' : '/admin/logout' }}" method="POST">
                 @csrf
                 <button type="button" id="admin-logout-btn" class="btn-logout">
                     <i class="fas fa-sign-out-alt"></i>
@@ -761,32 +761,25 @@
                         }
                         
                         if (response.redirected) {
-                            // Clear storage sebelum redirect
                             sessionStorage.clear();
                             localStorage.clear();
-                            window.location.href = response.url;
+                            window.location.href = '{{ $isPenilaiMode ? '/login' : '/admin/ict-login' }}';
                         } else if (response.ok) {
                             return response.json().then(data => {
-                                // Clear storage sebelum redirect
                                 sessionStorage.clear();
                                 localStorage.clear();
-                                if (data.redirect) {
-                                    window.location.href = data.redirect;
-                                } else {
-                                    window.location.href = '{{ $isPenilaiMode ? route("login") : route("admin.login") }}';
-                                }
+                                window.location.href = '{{ $isPenilaiMode ? '/login' : '/admin/ict-login' }}';
                             });
                         } else {
                             // Jika masih error, gunakan GET fallback
                             sessionStorage.clear();
                             localStorage.clear();
-                            window.location.href = '{{ $isPenilaiMode ? route("login") : route("admin.logout") }}?fallback=1';
+                            window.location.href = '{{ $isPenilaiMode ? '/logout' : '/admin/logout' }}?fallback=1';
                         }
                     })
                     .catch(error => {
                         console.error('Logout error:', error);
-                        // Fallback ke GET logout
-                        window.location.href = '{{ route("admin.logout") }}?fallback=1';
+                        window.location.href = '{{ $isPenilaiMode ? '/logout' : '/admin/logout' }}?fallback=1';
                     });
                 }
                 

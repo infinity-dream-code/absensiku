@@ -425,27 +425,14 @@
                     });
                 }
                 
-                if (response.redirected) {
-                    // Clear storage sebelum redirect
+                if (response.redirected || response.ok) {
                     sessionStorage.clear();
                     localStorage.clear();
-                    window.location.href = response.url;
-                } else if (response.ok) {
-                    return response.json().then(data => {
-                        // Clear storage sebelum redirect
-                        sessionStorage.clear();
-                        localStorage.clear();
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        } else {
-                            window.location.href = '{{ route("login") }}';
-                        }
-                    });
+                    window.location.href = '/login';
                 } else {
-                    // Jika masih error, gunakan GET fallback
                     sessionStorage.clear();
                     localStorage.clear();
-                    window.location.href = '{{ route("logout") }}?fallback=1';
+                    window.location.href = '/logout?fallback=1';
                 }
             })
             .catch(error => {
@@ -453,7 +440,7 @@
                 // Fallback ke GET logout
                 sessionStorage.clear();
                 localStorage.clear();
-                window.location.href = '{{ route("logout") }}?fallback=1';
+                window.location.href = '/logout?fallback=1';
             });
         }
         

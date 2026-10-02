@@ -25,8 +25,19 @@ class UsePublicUrl
 
     private function bindUrlToRequest(Request $request): void
     {
-        $host = strtolower($request->getHost());
-        if ($host === '' || $this->isBlockedHost($host)) {
+        $requestHost = strtolower($request->getHost());
+        $appHost = strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+        $appScheme = parse_url((string) config('app.url'), PHP_URL_SCHEME);
+
+        if ($this->isBlockedHost($requestHost) && $appHost !== '' && !$this->isBlockedHost($appHost)) {
+            $scheme = is_string($appScheme) && $appScheme !== '' ? $appScheme : 'https';
+            URL::forceRootUrl($scheme.'://'.$appHost);
+            URL::forceScheme($scheme);
+
+            return;
+        }
+
+        if ($requestHost === '' || $this->isBlockedHost($requestHost)) {
             return;
         }
 
@@ -38,16 +49,6 @@ class UsePublicUrl
     {
         $location = $response->headers->get('Location');
         if (!is_string($location) || !preg_match('#^https?://#i', $location)) {
-            return;
-        }
-
-        $host = parse_url($location, PHP_URL_HOST);
-        if (!is_string($host) || $host === '') {
-            return;
-        }
-
-        $requestHost = strtolower($request->getHost());
-        if (!$this->isBlockedHost($host) && strcasecmp($host, $requestHost) === 0) {
             return;
         }
 

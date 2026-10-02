@@ -39,7 +39,7 @@ class AuthController extends Controller
             
             // Clear intended URL to prevent redirect to attendance page
             $request->session()->forget('url.intended');
-            return redirect()->route('admin.dashboard')->with('success', 'Login berhasil!');
+            return redirect('/admin/dashboard')->with('success', 'Login berhasil!');
         }
 
         return back()->withErrors([
@@ -69,7 +69,7 @@ class AuthController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Logout berhasil!',
-                'redirect' => route('admin.login')
+                'redirect' => '/admin/ict-login'
             ]);
         }
         

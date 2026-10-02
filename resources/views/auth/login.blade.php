@@ -284,7 +284,7 @@
         </div>
 
         <div class="admin-login-wrapper">
-            <a href="{{ route('admin.login') }}" class="btn-admin-link">
+            <a href="/admin/ict-login" class="btn-admin-link">
                 <i class="fas fa-user-shield"></i>
                 <span>Login Admin</span>
             </a>

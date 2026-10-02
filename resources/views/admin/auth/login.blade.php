@@ -302,7 +302,7 @@
             <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
                 <p style="text-align:center; color:#9ca3af; font-size:13px; margin-bottom:12px;">atau</p>
                 <div style="display:flex; flex-direction:column; gap:10px;">
-                    <a href="{{ route('login') }}" class="btn-user-link">
+                    <a href="/login" class="btn-user-link">
                         <i class="fas fa-user"></i>
                         <span>Login User</span>
                     </a>
