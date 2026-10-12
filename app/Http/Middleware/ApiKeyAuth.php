@@ -33,11 +33,10 @@ class ApiKeyAuth
             $token = substr($authHeader, 7);
         }
 
-        // Get static API key from .env (default to JWT_SECRET if not set)
-        $staticApiKey = env('API_STATIC_KEY', env('JWT_SECRET'));
+        $staticApiKey = config('services.api.static_key');
 
         // Check if token matches static API key
-        if ($token === $staticApiKey) {
+        if (is_string($staticApiKey) && $staticApiKey !== '' && hash_equals($staticApiKey, $token)) {
             // Static API key is valid, allow request to proceed
             // Store in request for later use
             $request->merge(['_api_key_authenticated' => true]);

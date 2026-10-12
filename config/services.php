@@ -31,4 +31,8 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'api' => [
+        'static_key' => env('API_STATIC_KEY', env('JWT_SECRET')),
+    ],
+
 ];
