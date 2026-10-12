@@ -6,6 +6,16 @@ use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
 {
+    protected function bootstrappers()
+    {
+        return array_map(
+            fn ($bootstrapper) => $bootstrapper === \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class
+                ? \App\Bootstrap\LoadIsolatedEnvironment::class
+                : $bootstrapper,
+            parent::bootstrappers()
+        );
+    }
+
     /**
      * The application's global HTTP middleware stack.
      *

@@ -7,6 +7,16 @@ use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
 class Kernel extends ConsoleKernel
 {
+    protected function bootstrappers()
+    {
+        return array_map(
+            fn ($bootstrapper) => $bootstrapper === \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class
+                ? \App\Bootstrap\LoadIsolatedEnvironment::class
+                : $bootstrapper,
+            parent::bootstrappers()
+        );
+    }
+
     /**
      * Define the application's command schedule.
      */
