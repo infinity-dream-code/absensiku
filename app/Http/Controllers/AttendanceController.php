@@ -65,13 +65,14 @@ class AttendanceController extends Controller
             ->values()
             ->all();
 
-        $selectedYear = (int) $request->input('kpi_year', $now->year);
+        $lastMonth = $now->copy()->startOfMonth()->subMonth();
+        $selectedYear = (int) $request->input('kpi_year', $lastMonth->year);
         if (!in_array($selectedYear, $availableYears, true)) {
             $availableYears[] = $selectedYear;
             rsort($availableYears);
         }
 
-        $selectedMonth = (int) $request->input('kpi_month', $now->month);
+        $selectedMonth = (int) $request->input('kpi_month', $lastMonth->month);
         $selectedMonth = max(1, min(12, $selectedMonth));
 
         $assessment = KpiAssessment::with(['details', 'penilai', 'role'])

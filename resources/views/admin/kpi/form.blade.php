@@ -99,7 +99,7 @@
                     </select>
                 </div>
             </div>
-            <input type="hidden" name="bulan" id="bulan" value="{{ $bulan ?: now('Asia/Jakarta')->month }}">
+            <input type="hidden" name="bulan" id="bulan" value="{{ $bulan ?: now('Asia/Jakarta')->startOfMonth()->subMonth()->month }}">
             <div class="month-row">
                 @for($m = 1; $m <= 12; $m++)
                     <button type="button" class="month-chip {{ (int)$bulan === $m ? 'active' : '' }}" data-month="{{ $m }}">{{ $monthShort[$m] }}</button>
@@ -336,7 +336,7 @@ const userSelect = document.getElementById('user_id');
 const tahunSelect = document.getElementById('tahun');
 
 function submitFilter() {
-    if (!bulanInput.value) bulanInput.value = {{ (int) now('Asia/Jakarta')->month }};
+    if (!bulanInput.value) bulanInput.value = {{ (int) now('Asia/Jakarta')->startOfMonth()->subMonth()->month }};
     if (userSelect.value) formFilter.submit();
 }
 userSelect.addEventListener('change', submitFilter);

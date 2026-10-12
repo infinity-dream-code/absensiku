@@ -93,8 +93,9 @@ class KpiAssessmentController extends Controller
 
         $employees = $this->assessableEmployees($auth);
         $selectedUserId = (int) $request->input('user_id', 0);
-        $bulan = (int) $request->input('bulan', (int) Carbon::now('Asia/Jakarta')->month);
-        $tahun = (int) $request->input('tahun', (int) Carbon::now('Asia/Jakarta')->year);
+        $lastMonth = Carbon::now('Asia/Jakarta')->startOfMonth()->subMonth();
+        $bulan = (int) $request->input('bulan', $lastMonth->month);
+        $tahun = (int) $request->input('tahun', $lastMonth->year);
 
         $selectedEmployee = $selectedUserId > 0
             ? User::with('kpiRole')->find($selectedUserId)
