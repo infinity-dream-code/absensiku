@@ -125,7 +125,8 @@ class KpiAssessmentController extends Controller
                 if ($existing) {
                     $detailMap = $existing->details->keyBy('nama_indikator');
                     foreach ($indicators as $i => $indicator) {
-                        $scoreMap[$i] = (float) ($detailMap->get($indicator['nama'])?->skor ?? 0);
+                        $savedSkor = $detailMap->get($indicator['nama'])?->skor;
+                        $scoreMap[$i] = $savedSkor !== null ? (float) $savedSkor : null;
                         $savedBobot = $detailMap->get($indicator['nama'])?->bobot;
                         if ($savedBobot !== null) {
                             $indicators[$i]['bobot'] = (int) $savedBobot;
@@ -179,7 +180,7 @@ class KpiAssessmentController extends Controller
             'bulan' => 'required|integer|min:1|max:12',
             'tahun' => 'required|integer|min:2020|max:2100',
             'skor' => 'required|array',
-            'skor.*' => 'required|numeric|min:1|max:10',
+            'skor.*' => 'required|numeric|min:0|max:10',
             'rekomendasi' => 'nullable|string|max:5000',
         ] + ($isAdmin ? [
             'bobot' => 'required|array',

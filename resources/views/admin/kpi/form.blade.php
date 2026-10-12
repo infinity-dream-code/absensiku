@@ -142,7 +142,7 @@
                             <th style="width:50px;">No</th>
                             <th>Indikator KPI</th>
                             <th style="width:100px;">Bobot (%)</th>
-                            <th style="width:140px;">Skor (1-10, boleh koma)</th>
+                            <th style="width:140px;">Skor (0-10, boleh koma)</th>
                             <th style="width:120px;">Nilai Akhir</th>
                         </tr>
                     </thead>
@@ -156,7 +156,8 @@
                             @php
                                 $rowNo++;
                                 $isAbsensi = $absensiIndex !== null && (int) $i === (int) $absensiIndex;
-                                $skor = (float) old('skor.'.$i, $scoreMap[$i] ?? 0);
+                                $rawSkor = old('skor.'.$i, $scoreMap[$i] ?? null);
+                                $skor = (float) str_replace(',', '.', (string) $rawSkor);
                                 $nilai = $skor > 0 ? \App\Services\KpiCalculator::nilaiAkhir((int) $indicator['bobot'], $skor) : 0;
                             @endphp
                             <tr>
@@ -185,9 +186,9 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <input type="text" inputmode="decimal" name="skor[{{ $i }}]" class="form-control skor-input" required data-bobot="{{ (int)($indicator['bobot'] ?? 0) }}" data-index="{{ $i }}" value="{{ $skor ? \App\Services\KpiCalculator::formatSkor($skor) : '' }}" placeholder="7,5" @if($isAbsensi) readonly style="background:#f3f4f6; cursor:not-allowed;" @endif>
+                                    <input type="text" inputmode="decimal" name="skor[{{ $i }}]" class="form-control skor-input" required data-bobot="{{ (int)($indicator['bobot'] ?? 0) }}" data-index="{{ $i }}" value="{{ \App\Services\KpiCalculator::formatSkor($rawSkor) }}" placeholder="7,5" @if($isAbsensi) readonly style="background:#f3f4f6; cursor:not-allowed;" @endif>
                                 </td>
-                                <td><span class="nilai-akhir" id="nilai-{{ $i }}">{{ $nilai ?: '-' }}</span></td>
+                                <td><span class="nilai-akhir" id="nilai-{{ $i }}">{{ $rawSkor !== null && $rawSkor !== '' ? $nilai : '-' }}</span></td>
                             </tr>
                         @endforeach
                         <tr class="individu-table-divider"><td colspan="5"><strong>Indikator Individu</strong></td></tr>
@@ -196,7 +197,8 @@
                                 @if(empty($indicator['is_individu'])) @continue @endif
                                 @php
                                     $rowNo++;
-                                    $skor = (float) old('skor.'.$i, $scoreMap[$i] ?? 0);
+                                    $rawSkor = old('skor.'.$i, $scoreMap[$i] ?? null);
+                                    $skor = (float) str_replace(',', '.', (string) $rawSkor);
                                     $nilai = $skor > 0 ? \App\Services\KpiCalculator::nilaiAkhir((int) $indicator['bobot'], $skor) : 0;
                                 @endphp
                                 <tr>
@@ -215,8 +217,8 @@
                                             <span class="bobot-locked">{{ (int)($indicator['bobot'] ?? 0) }}</span>
                                         @endif
                                     </td>
-                                    <td><input type="text" inputmode="decimal" name="skor[{{ $i }}]" class="form-control skor-input" required data-bobot="{{ (int)($indicator['bobot'] ?? 0) }}" data-index="{{ $i }}" value="{{ $skor ? \App\Services\KpiCalculator::formatSkor($skor) : '' }}" placeholder="7,5"></td>
-                                    <td><span class="nilai-akhir" id="nilai-{{ $i }}">{{ $nilai ?: '-' }}</span></td>
+                                    <td><input type="text" inputmode="decimal" name="skor[{{ $i }}]" class="form-control skor-input" required data-bobot="{{ (int)($indicator['bobot'] ?? 0) }}" data-index="{{ $i }}" value="{{ \App\Services\KpiCalculator::formatSkor($rawSkor) }}" placeholder="7,5"></td>
+                                    <td><span class="nilai-akhir" id="nilai-{{ $i }}">{{ $rawSkor !== null && $rawSkor !== '' ? $nilai : '-' }}</span></td>
                                 </tr>
                             @endforeach
                         @else
@@ -374,11 +376,12 @@ function recalculate() {
         const bobotInput = document.querySelector('.bobot-input[data-index="' + idx + '"]');
         const bobot = parseInt((bobotInput ? bobotInput.value : input.dataset.bobot) || '0', 10);
         const skor = parseSkor(input.value);
+        const filled = String(input.value || '').trim() !== '';
         let nilai = 0;
-        if (skor >= 1 && skor <= 10) { nilai = Math.round((bobot * skor) / 10 * 10) / 10; total += nilai; }
+        if (filled && skor >= 0 && skor <= 10) { nilai = Math.round((bobot * skor) / 10 * 10) / 10; total += nilai; }
         totalBobot += bobot;
         const el = document.getElementById('nilai-' + idx);
-        if (el) el.textContent = nilai ? nilai : '-';
+        if (el) el.textContent = filled ? nilai : '-';
     });
     const preview = document.getElementById('skor-akhir-preview');
     if (preview) preview.textContent = total ? (Math.round(total * 10) / 10) : '-';

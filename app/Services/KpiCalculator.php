@@ -153,9 +153,16 @@ class KpiCalculator
 
     public static function formatSkor(mixed $value): string
     {
-        $skor = self::parseSkor($value);
-        if ($skor <= 0) {
+        if ($value === null || $value === '') {
             return '';
+        }
+
+        $skor = self::parseSkor($value);
+        if ($skor < 0) {
+            return '';
+        }
+        if ($skor == 0) {
+            return '0';
         }
 
         return rtrim(rtrim(number_format($skor, 1, ',', ''), '0'), ',');
