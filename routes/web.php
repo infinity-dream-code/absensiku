@@ -133,6 +133,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/leave-history/{leave}', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'update'])->name('leave-history.update');
         Route::delete('/leave-history/{leave}', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'destroy'])->name('leave-history.destroy');
         Route::get('/lembur-history', [\App\Http\Controllers\Admin\LemburHistoryController::class, 'index'])->name('lembur-history.index');
+        Route::get('/lembur-history/export', [\App\Http\Controllers\Admin\LemburHistoryController::class, 'export'])->name('lembur-history.export');
         Route::get('/location-settings', [\App\Http\Controllers\Admin\LocationController::class, 'index'])->name('location.index');
         Route::put('/location-settings', [\App\Http\Controllers\Admin\LocationController::class, 'update'])->name('location.update');
         Route::get('/holiday', [\App\Http\Controllers\Admin\HolidayController::class, 'index'])->name('holiday.index');

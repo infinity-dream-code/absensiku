@@ -46,6 +46,24 @@
         gap: 8px;
         justify-content: center;
     }
+    .btn-export {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        background: #059669;
+        color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    .btn-export:hover { background: #047857; color: white; }
+    .export-bar {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e5e7eb;
+    }
     .table-card {
         background: white;
         border-radius: 12px;
@@ -133,6 +151,12 @@
             </button>
         </div>
     </form>
+    <div class="export-bar">
+        <a href="{{ route('admin.lembur-history.export', request()->query()) }}" class="btn-export">
+            <i class="fas fa-file-excel"></i>
+            <span>Export Excel</span>
+        </a>
+    </div>
 </div>
 
 <div class="table-card">

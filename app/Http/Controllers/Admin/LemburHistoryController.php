@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\OvertimeExport;
 use App\Http\Controllers\Controller;
 use App\Models\Overtime;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LemburHistoryController extends Controller
 {
@@ -86,5 +88,19 @@ class LemburHistoryController extends Controller
             'availableYears',
             'monthNames'
         ));
+    }
+
+    public function export(Request $request)
+    {
+        $filters = [
+            'year' => $request->input('year'),
+            'month' => $request->input('month'),
+            'user_id' => $request->input('user_id'),
+            'search' => $request->input('search'),
+        ];
+
+        $filename = 'Export_Lembur_' . date('Y-m-d_His') . '.xlsx';
+
+        return Excel::download(new OvertimeExport($filters), $filename);
     }
 }
