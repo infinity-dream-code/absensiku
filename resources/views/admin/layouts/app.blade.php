@@ -475,6 +475,10 @@
                 <i class="fas fa-calendar-times"></i>
                 <span>History Izin</span>
             </a>
+            <a href="{{ route('admin.lembur-history.index') }}" class="nav-item {{ request()->routeIs('admin.lembur-history.*') ? 'active' : '' }}">
+                <i class="fas fa-business-time"></i>
+                <span>Riwayat Lembur</span>
+            </a>
             <a href="{{ route('admin.location.index') }}" class="nav-item {{ request()->routeIs('admin.location.*') ? 'active' : '' }}">
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Set Lokasi</span>

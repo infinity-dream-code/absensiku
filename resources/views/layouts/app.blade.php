@@ -281,6 +281,10 @@
                         <i class="fas fa-calendar-times" style="font-size:13px;"></i>
                         <span style="font-size:13px;">Perizinan</span>
                     </a>
+                    <a href="{{ route('lembur.index') }}" class="nav-link">
+                        <i class="fas fa-business-time" style="font-size:13px;"></i>
+                        <span style="font-size:13px;">Lembur</span>
+                    </a>
                     <a href="{{ route('profile.change-username') }}" class="nav-link">
                         <i class="fas fa-user-edit" style="font-size:13px;"></i>
                         <span style="font-size:13px;">Ganti Username</span>
@@ -316,6 +320,10 @@
                     <a href="{{ route('leave.index') }}" class="nav-dropdown-item">
                         <i class="fas fa-calendar-times"></i>
                         <span>Perizinan</span>
+                    </a>
+                    <a href="{{ route('lembur.index') }}" class="nav-dropdown-item">
+                        <i class="fas fa-business-time"></i>
+                        <span>Lembur</span>
                     </a>
                     <a href="{{ route('profile.change-username') }}" class="nav-dropdown-item">
                         <i class="fas fa-user-edit"></i>

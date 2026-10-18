@@ -65,6 +65,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Leave::class);
     }
 
+    public function overtimes()
+    {
+        return $this->hasMany(Overtime::class);
+    }
+
     public function referensiWfo()
     {
         return $this->hasOne(ReferensiWfo::class, 'custid');

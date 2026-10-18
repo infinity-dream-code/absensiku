@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\LemburController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -63,6 +64,11 @@ Route::middleware(['auth'])->group(function () {
     // Leave Routes
     Route::get('/leave', [LeaveController::class, 'index'])->name('leave.index');
     Route::post('/leave', [LeaveController::class, 'store'])->name('leave.store');
+
+    // Lembur Routes
+    Route::get('/lembur', [LemburController::class, 'index'])->name('lembur.index');
+    Route::post('/lembur', [LemburController::class, 'store'])->name('lembur.store');
+    Route::delete('/lembur/{overtime}', [LemburController::class, 'destroy'])->name('lembur.destroy');
 
     // Profile Routes
     Route::get('/profile/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
@@ -126,6 +132,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/leave-history', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'index'])->name('leave-history.index');
         Route::put('/leave-history/{leave}', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'update'])->name('leave-history.update');
         Route::delete('/leave-history/{leave}', [\App\Http\Controllers\Admin\LeaveHistoryController::class, 'destroy'])->name('leave-history.destroy');
+        Route::get('/lembur-history', [\App\Http\Controllers\Admin\LemburHistoryController::class, 'index'])->name('lembur-history.index');
         Route::get('/location-settings', [\App\Http\Controllers\Admin\LocationController::class, 'index'])->name('location.index');
         Route::put('/location-settings', [\App\Http\Controllers\Admin\LocationController::class, 'update'])->name('location.update');
         Route::get('/holiday', [\App\Http\Controllers\Admin\HolidayController::class, 'index'])->name('holiday.index');
