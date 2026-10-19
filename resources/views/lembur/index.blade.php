@@ -220,6 +220,17 @@
                         <label class="form-label" for="overtime_date">Tanggal</label>
                         <input type="date" id="overtime_date" name="overtime_date" class="form-control" required value="{{ now('Asia/Jakarta')->toDateString() }}">
                     </div>
+                    <div class="form-group">
+                        <label class="form-label" for="work_type">Jenis Lembur</label>
+                        <select id="work_type" name="work_type" class="form-control" required>
+                            <option value="">-- Pilih --</option>
+                            <option value="WFO">WFO (Work From Office)</option>
+                            <option value="WFH">WFH (Work From Home)</option>
+                        </select>
+                        <p id="workTypeHint" style="margin:0.4rem 0 0;font-size:0.78rem;color:#6b7280;">
+                            WFO wajib di dalam area kantor. WFH tidak perlu validasi lokasi.
+                        </p>
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label class="form-label" for="start_time">Dari jam</label>
@@ -291,7 +302,8 @@
                                 </div>
                             </div>
                             <div class="detail-meta">
-                                Durasi: {{ $item->durationLabel() }}
+                                {{ $item->work_type ?: '-' }}
+                                · Durasi: {{ $item->durationLabel() }}
                                 @if($item->notes)
                                     · {{ $item->notes }}
                                 @endif
@@ -326,12 +338,36 @@
 
     var form = document.getElementById('lemburForm');
     var submitBtn = document.getElementById('lemburSubmitBtn');
+    var workTypeSelect = document.getElementById('work_type');
+    var workTypeHint = document.getElementById('workTypeHint');
 
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        submitBtn.disabled = true;
+    workTypeSelect.addEventListener('change', function () {
+        if (this.value === 'WFO') {
+            workTypeHint.textContent = 'WFO wajib di dalam area kantor. Lokasi akan diambil saat simpan.';
+        } else if (this.value === 'WFH') {
+            workTypeHint.textContent = 'WFH tidak perlu validasi lokasi.';
+        } else {
+            workTypeHint.textContent = 'WFO wajib di dalam area kantor. WFH tidak perlu validasi lokasi.';
+        }
+    });
 
-        var formData = new FormData(form);
+    function fetchLocation() {
+        return new Promise(function (resolve, reject) {
+            if (!navigator.geolocation) {
+                reject({ message: 'Browser tidak mendukung geolocation.' });
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                function (pos) { resolve(pos); },
+                function (err) {
+                    reject({ message: err && err.message ? err.message : 'Gagal mengambil lokasi.' });
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        });
+    }
+
+    function submitLembur(formData) {
         var meta = document.querySelector('meta[name="csrf-token"]');
         if (meta) {
             formData.set('_token', meta.getAttribute('content'));
@@ -343,7 +379,7 @@
             didOpen: function () { Swal.showLoading(); }
         });
 
-        axios.post('{{ route('lembur.store') }}', formData, {
+        return axios.post('{{ route('lembur.store') }}', formData, {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(function (response) {
@@ -376,6 +412,48 @@
         .finally(function () {
             submitBtn.disabled = false;
         });
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        submitBtn.disabled = true;
+
+        var formData = new FormData(form);
+        var workType = formData.get('work_type');
+
+        if (!workType) {
+            submitBtn.disabled = false;
+            Swal.fire({ icon: 'warning', title: 'Pilih jenis lembur', text: 'Silakan pilih WFO atau WFH.', confirmButtonColor: '#6366f1' });
+            return;
+        }
+
+        if (workType === 'WFO') {
+            Swal.fire({
+                title: 'Mengambil lokasi...',
+                html: '<p style="color:#6b7280;font-size:14px;">WFO wajib di dalam area kantor</p>',
+                allowOutsideClick: false,
+                didOpen: function () { Swal.showLoading(); }
+            });
+
+            fetchLocation()
+                .then(function (position) {
+                    formData.set('latitude', position.coords.latitude);
+                    formData.set('longitude', position.coords.longitude);
+                    return submitLembur(formData);
+                })
+                .catch(function (err) {
+                    submitBtn.disabled = false;
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Lokasi diperlukan',
+                        text: (err && err.message) ? err.message : 'Izinkan akses lokasi untuk lembur WFO.',
+                        confirmButtonColor: '#6366f1'
+                    });
+                });
+            return;
+        }
+
+        submitLembur(formData);
     });
 
     document.querySelectorAll('[data-delete]').forEach(function (btn) {

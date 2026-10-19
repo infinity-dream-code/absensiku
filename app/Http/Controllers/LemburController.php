@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Overtime;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -69,13 +70,16 @@ class LemburController extends Controller
             $monthCounts[$m] = $items->count();
         }
 
+        $settings = Setting::getSettings();
+
         return view('lembur.index', compact(
             'year',
             'selectedMonth',
             'monthNames',
             'availableYears',
             'byMonth',
-            'monthCounts'
+            'monthCounts',
+            'settings'
         ));
     }
 
@@ -90,19 +94,64 @@ class LemburController extends Controller
 
         $validated = $request->validate([
             'overtime_date' => 'required|date',
+            'work_type' => 'required|in:WFO,WFH',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'notes' => 'nullable|string|max:500',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ], [
             'end_time.after' => 'Jam selesai harus setelah jam mulai (dalam hari yang sama).',
         ]);
 
+        $latitude = $request->filled('latitude') ? (float) $validated['latitude'] : null;
+        $longitude = $request->filled('longitude') ? (float) $validated['longitude'] : null;
+        $locationValid = null;
+
+        if ($validated['work_type'] === 'WFO') {
+            if ($latitude === null || $longitude === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur WFO wajib mengambil lokasi. Izinkan akses lokasi lalu coba lagi.',
+                ], 422);
+            }
+
+            $settings = Setting::getSettings();
+            if (!$settings->latitude || !$settings->longitude || !$settings->radius) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lokasi kantor belum dikonfigurasi. Hubungi admin.',
+                ], 422);
+            }
+
+            $distanceKm = $this->calculateDistance(
+                (float) $settings->latitude,
+                (float) $settings->longitude,
+                $latitude,
+                $longitude
+            );
+            $radiusKm = ((float) $settings->radius) / 1000;
+
+            if ($distanceKm > $radiusKm) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur WFO hanya bisa diajukan di dalam area kantor.',
+                ], 422);
+            }
+
+            $locationValid = true;
+        }
+
         $overtime = Overtime::create([
             'user_id' => Auth::id(),
             'overtime_date' => $validated['overtime_date'],
+            'work_type' => $validated['work_type'],
             'start_time' => $validated['start_time'] . ':00',
             'end_time' => $validated['end_time'] . ':00',
             'notes' => $validated['notes'] ?? null,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'location_valid' => $locationValid,
         ]);
 
         return response()->json([
@@ -127,5 +176,18 @@ class LemburController extends Controller
             'success' => true,
             'message' => 'Data lembur berhasil dihapus!',
         ]);
+    }
+
+    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadius = 6371;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) * sin($dLat / 2)
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2))
+            * sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
     }
 }

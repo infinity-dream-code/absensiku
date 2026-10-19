@@ -168,6 +168,7 @@
                     <th>Hari</th>
                     <th>NIP</th>
                     <th>Nama</th>
+                    <th>Jenis</th>
                     <th>Jam</th>
                     <th>Durasi</th>
                     <th>Catatan</th>
@@ -180,6 +181,7 @@
                         <td>{{ $item->overtime_date->locale('id')->isoFormat('dddd') }}</td>
                         <td style="font-weight:600;">{{ $item->user->nip ?: '-' }}</td>
                         <td>{{ $item->user->name }}</td>
+                        <td>{{ $item->work_type ?: '-' }}</td>
                         <td>
                             <span class="badge-time">
                                 {{ \Carbon\Carbon::parse($item->start_time)->format('H:i') }}
@@ -192,7 +194,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="empty-cell">Belum ada data lembur untuk filter ini.</td>
+                        <td colspan="8" class="empty-cell">Belum ada data lembur untuk filter ini.</td>
                     </tr>
                 @endforelse
             </tbody>

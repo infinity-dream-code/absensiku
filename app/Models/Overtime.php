@@ -13,13 +13,18 @@ class Overtime extends Model
     protected $fillable = [
         'user_id',
         'overtime_date',
+        'work_type',
         'start_time',
         'end_time',
         'notes',
+        'latitude',
+        'longitude',
+        'location_valid',
     ];
 
     protected $casts = [
         'overtime_date' => 'date',
+        'location_valid' => 'boolean',
     ];
 
     public function user()
