@@ -61,8 +61,8 @@ class Overtime extends Model
     {
         return match ($this->schedule_type) {
             'piket' => 'Piket / Terjadwal',
-            'additional' => 'Additional / Tidak Terjadwal',
-            default => '-',
+            'additional' => 'Tidak Terjadwal / Additional',
+            default => 'Tidak Terjadwal / Additional',
         };
     }
 }

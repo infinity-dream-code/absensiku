@@ -233,10 +233,9 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="schedule_type">Jenis Lembur</label>
-                        <select id="schedule_type" name="schedule_type" class="form-control" required>
-                            <option value="">-- Pilih --</option>
+                        <select id="schedule_type" name="schedule_type" class="form-control">
+                            <option value="additional" selected>Tidak Terjadwal / Additional</option>
                             <option value="piket">Piket / Terjadwal</option>
-                            <option value="additional">Additional / Tidak Terjadwal</option>
                         </select>
                     </div>
                     <div class="form-row">

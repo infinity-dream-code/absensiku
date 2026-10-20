@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('overtimes', function (Blueprint $table) {
             $table->enum('schedule_type', ['piket', 'additional'])
-                ->default('piket')
+                ->default('additional')
                 ->after('work_type');
         });
     }

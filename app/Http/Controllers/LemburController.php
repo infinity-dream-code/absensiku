@@ -87,15 +87,19 @@ class LemburController extends Controller
     {
         $start = substr((string) $request->input('start_time'), 0, 5);
         $end = substr((string) $request->input('end_time'), 0, 5);
+        $scheduleType = $request->filled('schedule_type')
+            ? $request->input('schedule_type')
+            : 'additional';
         $request->merge([
             'start_time' => $start,
             'end_time' => $end,
+            'schedule_type' => $scheduleType,
         ]);
 
         $validated = $request->validate([
             'overtime_date' => 'required|date',
             'work_type' => 'required|in:WFO,WFH',
-            'schedule_type' => 'required|in:piket,additional',
+            'schedule_type' => 'nullable|in:piket,additional',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'notes' => 'nullable|string|max:500',
@@ -104,6 +108,8 @@ class LemburController extends Controller
         ], [
             'end_time.after' => 'Jam selesai harus setelah jam mulai (dalam hari yang sama).',
         ]);
+
+        $validated['schedule_type'] = $validated['schedule_type'] ?? 'additional';
 
         $latitude = $request->filled('latitude') ? (float) $validated['latitude'] : null;
         $longitude = $request->filled('longitude') ? (float) $validated['longitude'] : null;
