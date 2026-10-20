@@ -95,6 +95,7 @@ class LemburController extends Controller
         $validated = $request->validate([
             'overtime_date' => 'required|date',
             'work_type' => 'required|in:WFO,WFH',
+            'schedule_type' => 'required|in:piket,additional',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'notes' => 'nullable|string|max:500',
@@ -146,6 +147,7 @@ class LemburController extends Controller
             'user_id' => Auth::id(),
             'overtime_date' => $validated['overtime_date'],
             'work_type' => $validated['work_type'],
+            'schedule_type' => $validated['schedule_type'],
             'start_time' => $validated['start_time'] . ':00',
             'end_time' => $validated['end_time'] . ':00',
             'notes' => $validated['notes'] ?? null,

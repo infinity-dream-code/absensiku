@@ -221,7 +221,7 @@
                         <input type="date" id="overtime_date" name="overtime_date" class="form-control" required value="{{ now('Asia/Jakarta')->toDateString() }}">
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="work_type">Jenis Lembur</label>
+                        <label class="form-label" for="work_type">Lokasi Lembur</label>
                         <select id="work_type" name="work_type" class="form-control" required>
                             <option value="">-- Pilih --</option>
                             <option value="WFO">WFO (Work From Office)</option>
@@ -230,6 +230,14 @@
                         <p id="workTypeHint" style="margin:0.4rem 0 0;font-size:0.78rem;color:#6b7280;">
                             WFO wajib di dalam area kantor. WFH tidak perlu validasi lokasi.
                         </p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="schedule_type">Jenis Lembur</label>
+                        <select id="schedule_type" name="schedule_type" class="form-control" required>
+                            <option value="">-- Pilih --</option>
+                            <option value="piket">Piket / Terjadwal</option>
+                            <option value="additional">Additional / Tidak Terjadwal</option>
+                        </select>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -303,6 +311,7 @@
                             </div>
                             <div class="detail-meta">
                                 {{ $item->work_type ?: '-' }}
+                                · {{ $item->scheduleTypeLabel() }}
                                 · Durasi: {{ $item->durationLabel() }}
                                 @if($item->notes)
                                     · {{ $item->notes }}

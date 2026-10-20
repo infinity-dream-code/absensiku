@@ -14,6 +14,7 @@ class Overtime extends Model
         'user_id',
         'overtime_date',
         'work_type',
+        'schedule_type',
         'start_time',
         'end_time',
         'notes',
@@ -54,5 +55,14 @@ class Overtime extends Model
         }
 
         return $mins . ' menit';
+    }
+
+    public function scheduleTypeLabel(): string
+    {
+        return match ($this->schedule_type) {
+            'piket' => 'Piket / Terjadwal',
+            'additional' => 'Additional / Tidak Terjadwal',
+            default => '-',
+        };
     }
 }
