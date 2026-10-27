@@ -35,7 +35,9 @@ class Attendance extends Model
     ];
     public function punctualityStatus(?string $checkInEndTime = null): string
     {
-        if (!$this->check_in) {
+        $this->loadMissing('logs');
+
+        if (!$this->earliestCheckInTime()) {
             return '-';
         }
 
@@ -48,15 +50,9 @@ class Attendance extends Model
         }
 
         $checkInEndTime = $checkInEndTime
-            ?: (Setting::getSettings()->check_in_end ?: '09:00:00');
+            ?: (Setting::getSettings()->check_in_end ?: '10:00:00');
 
-        $checkInEnd = Carbon::parse(
-            $date->format('Y-m-d') . ' ' . $checkInEndTime,
-            'Asia/Jakarta'
-        );
-        $checkInTime = Carbon::parse($this->check_in, 'Asia/Jakarta');
-
-        return $checkInTime->gt($checkInEnd) ? 'Terlambat' : 'Tepat Waktu';
+        return $this->isLateStatus($checkInEndTime) ? 'Terlambat' : 'Tepat Waktu';
     }
 
     public function isLate(?string $checkInEndTime = null): bool
@@ -211,6 +207,15 @@ class Attendance extends Model
      */
     public function isLate025(string $checkInEndTime = '10:00:00'): bool
     {
+        if ($this->hasCheckInBeforeTen()) {
+            return false;
+        }
+
+        $wfoTime = $this->latestWfoCheckInTime();
+        if ($wfoTime && $wfoTime->format('H:i:s') <= '10:30:00') {
+            return false;
+        }
+
         $earliest = $this->earliestCheckInTime();
         if (!$earliest) {
             return false;

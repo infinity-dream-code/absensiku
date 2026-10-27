@@ -701,8 +701,9 @@
                         </span>
                     </td>
                     <td>
-                        @if($attendance->check_in)
-                            {{ \Carbon\Carbon::parse($attendance->check_in)->setTimezone('Asia/Jakarta')->format('H:i:s') }}
+                        @php $earliestCheckIn = $attendance->earliestCheckInTime(); @endphp
+                        @if($earliestCheckIn)
+                            {{ $earliestCheckIn->format('H:i:s') }}
                         @else
                             <span style="color: #9ca3af;">-</span>
                         @endif
@@ -716,7 +717,7 @@
                     </td>
                     <td>
                         @php
-                            $status = $attendance->punctualityStatus($settings->check_in_end ?: '09:00:00');
+                            $status = $attendance->punctualityStatus($settings->check_in_end ?: '10:00:00');
                         @endphp
                         @if($status === 'Terlambat')
                             <span style="color: #dc2626; font-weight: 600;">Terlambat</span>

@@ -25,7 +25,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
      */
     public function collection()
     {
-        $query = Attendance::with('user')->orderBy('attendance_date', 'desc')->orderBy('check_in', 'asc');
+        $query = Attendance::with(['user', 'logs'])->orderBy('attendance_date', 'desc')->orderBy('check_in', 'asc');
 
         // Filter by date
         if (isset($this->filters['date_from']) && $this->filters['date_from']) {
@@ -104,7 +104,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
     {
         $settings = Setting::getSettings();
         // Sabtu/Minggu selalu Tepat Waktu (hanya catatan, tidak dihitung terlambat)
-        $status = $attendance->punctualityStatus($settings->check_in_end ?: '09:00:00');
+        $status = $attendance->punctualityStatus($settings->check_in_end ?: '10:00:00');
 
         // Keterangan (hanya notes/catatan dari absensi)
         $keterangan = $attendance->notes ?: '-';
@@ -114,7 +114,7 @@ class AttendanceExport implements FromCollection, WithHeadings, WithMapping, Wit
             $attendance->user->nip ?? '-',
             $attendance->user->name,
             $attendance->work_type,
-            $attendance->check_in ? Carbon::parse($attendance->check_in, 'Asia/Jakarta')->format('H:i:s') : '-',
+            $attendance->earliestCheckInTime()?->format('H:i:s') ?? '-',
             $attendance->check_out ? Carbon::parse($attendance->check_out, 'Asia/Jakarta')->format('H:i:s') : '-',
             $status,
             $keterangan ?: '-'
