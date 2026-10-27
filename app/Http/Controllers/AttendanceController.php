@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Attendance;
 use App\Models\AttendanceLog;
@@ -268,6 +269,15 @@ class AttendanceController extends Controller
                 ->whereDate('attendance_date', $today)
                 ->first();
 
+            if (!$attendance || !$attendance->check_in) {
+                Cache::forget($cacheKey);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Check-in belum tersimpan. Silakan coba lagi.',
+                ], 422);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Check-in berhasil!',
@@ -439,72 +449,83 @@ class AttendanceController extends Controller
             }
         }
 
-        // Create or update attendance record
-        if ($existing) {
-            if (!$existing->check_in) {
-                // First check-in of the day (record existed but no check_in yet)
-                $data['check_in'] = $now;
-                $existing->update($data);
-                $attendance = $existing;
-            } else {
-                // Absen kedua+: check_in awal tetap; work_type ikut terakhir
-                // WFA jam 8 + WFO > 10:30 → tetap is_telat_wfo = 1
-                $earliest = Carbon::parse($existing->check_in, 'Asia/Jakarta');
-                $updateExtra = [
-                    'work_type' => $request->work_type,
-                    'is_telat_wfo' => Attendance::resolveIsTelatWfo(
-                        $request->work_type === 'WFO',
-                        $earliest,
-                        $now
-                    ) ? 1 : 0,
-                ];
-                // Catatan ikut absen terakhir (boleh kosong)
-                $updateExtra['notes'] = $request->input('notes');
-                if ($request->filled('latitude')) {
-                    $updateExtra['latitude'] = $request->latitude;
-                    $updateExtra['longitude'] = $request->longitude;
-                    if (isset($data['location_name'])) {
-                        $updateExtra['location_name'] = $data['location_name'];
+        $attendance = DB::transaction(function () use ($request, $existing, $data, $now, $locationName, $imageUrl) {
+            if ($existing) {
+                if (!$existing->check_in) {
+                    $data['check_in'] = $now;
+                    $existing->update($data);
+                    $attendance = $existing;
+                } else {
+                    $earliest = Carbon::parse($existing->check_in, 'Asia/Jakarta');
+                    $updateExtra = [
+                        'work_type' => $request->work_type,
+                        'is_telat_wfo' => Attendance::resolveIsTelatWfo(
+                            $request->work_type === 'WFO',
+                            $earliest,
+                            $now
+                        ) ? 1 : 0,
+                    ];
+                    $updateExtra['notes'] = $request->input('notes');
+                    if ($request->filled('latitude')) {
+                        $updateExtra['latitude'] = $request->latitude;
+                        $updateExtra['longitude'] = $request->longitude;
+                        if (isset($data['location_name'])) {
+                            $updateExtra['location_name'] = $data['location_name'];
+                        }
+                        if (array_key_exists('location_valid', $data)) {
+                            $updateExtra['location_valid'] = $data['location_valid'];
+                        }
                     }
-                    if (array_key_exists('location_valid', $data)) {
-                        $updateExtra['location_valid'] = $data['location_valid'];
-                    }
+                    $existing->update($updateExtra);
+                    $attendance = $existing->fresh();
                 }
-                $existing->update($updateExtra);
-                $attendance = $existing->fresh();
+            } else {
+                $data['check_in'] = $now;
+                $attendance = Attendance::create($data);
             }
-        } else {
-            // First check-in of the day
-            $data['check_in'] = $now;
-            $attendance = Attendance::create($data);
-        }
 
-        // Simpan log untuk setiap check-in (termasuk absen kedua di hari yang sama)
-        $logData = [
-            'attendance_id' => $attendance->id,
-            'check_in_time' => $now,
-            'status' => $request->work_type,
-            'notes' => $request->notes,
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-            'location_name' => $locationName,
-            'image' => $imageUrl,
-        ];
-        
-        AttendanceLog::create($logData);
+            $log = AttendanceLog::create([
+                'attendance_id' => $attendance->id,
+                'check_in_time' => $now,
+                'status' => $request->work_type,
+                'notes' => $request->notes,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'location_name' => $locationName,
+                'image' => $imageUrl,
+            ]);
 
-        // Pastikan kolom work_type record utama = jenis absen terakhir
-        $attendance->forceFill([
-            'work_type' => $request->work_type,
-            'is_telat_wfo' => Attendance::resolveIsTelatWfo(
-                $request->work_type === 'WFO',
-                $existing && $existing->check_in
-                    ? Carbon::parse($existing->check_in, 'Asia/Jakarta')
-                    : $now,
-                $now
-            ) ? 1 : 0,
-        ])->saveQuietly();
-        $attendance->refresh();
+            $attendance->forceFill([
+                'work_type' => $request->work_type,
+                'is_telat_wfo' => Attendance::resolveIsTelatWfo(
+                    $request->work_type === 'WFO',
+                    $existing && $existing->check_in
+                        ? Carbon::parse($existing->check_in, 'Asia/Jakarta')
+                        : $now,
+                    $now
+                ) ? 1 : 0,
+            ])->saveQuietly();
+
+            $persisted = Attendance::query()
+                ->whereKey($attendance->id)
+                ->where('user_id', Auth::id())
+                ->first();
+            $logPersisted = AttendanceLog::query()->whereKey($log->id)->exists();
+
+            if (!$persisted || !$persisted->check_in || !$logPersisted) {
+                throw new \RuntimeException('Check-in tidak ditemukan di database setelah disimpan.');
+            }
+
+            Log::info('Check-in persisted', [
+                'user_id' => Auth::id(),
+                'attendance_id' => $persisted->id,
+                'log_id' => $log->id,
+                'database' => config('database.connections.' . config('database.default') . '.database'),
+                'work_type' => $request->work_type,
+            ]);
+
+            return $persisted->fresh();
+        });
 
         $message = 'Check-in berhasil!';
         if ($request->work_type === 'WFO' && isset($data['location_valid']) && !$data['location_valid']) {

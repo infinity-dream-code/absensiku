@@ -8,12 +8,21 @@ class Kernel extends HttpKernel
 {
     protected function bootstrappers()
     {
-        return array_map(
-            fn ($bootstrapper) => $bootstrapper === \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class
-                ? \App\Bootstrap\LoadIsolatedEnvironment::class
-                : $bootstrapper,
-            parent::bootstrappers()
-        );
+        $bootstrappers = [];
+        foreach (parent::bootstrappers() as $bootstrapper) {
+            if ($bootstrapper === \Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables::class) {
+                $bootstrappers[] = \App\Bootstrap\LoadIsolatedEnvironment::class;
+                continue;
+            }
+
+            $bootstrappers[] = $bootstrapper;
+
+            if ($bootstrapper === \Illuminate\Foundation\Bootstrap\LoadConfiguration::class) {
+                $bootstrappers[] = \App\Bootstrap\PinApplicationConfig::class;
+            }
+        }
+
+        return $bootstrappers;
     }
 
     /**
